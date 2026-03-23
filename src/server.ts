@@ -138,6 +138,16 @@ app.get("/weather", (_req, res) => {
   }
 });
 
+app.get("/docs", (_req, res) => {
+  try {
+    const html = renderWithLayout("docs", { title: "Dokumentasi Fuzzy Logic" });
+    res.send(html);
+  } catch (err) {
+    logError("GET /docs", err);
+    res.status(500).send("Terjadi kesalahan saat memuat halaman.");
+  }
+});
+
 app.get("/fuzzy", (_req, res) => {
   try {
     const html = renderWithLayout("fuzzy", { title: "Fuzzy Logic - Analisis Sensor" });
