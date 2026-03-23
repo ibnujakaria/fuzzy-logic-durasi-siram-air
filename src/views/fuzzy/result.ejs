@@ -1,5 +1,5 @@
 <template x-if="result">
-  <div class="result-card">
+  <div class="result-card" x-init="$nextTick(() => renderCharts())">
     <h2>Hasil Analisis Fuzzy</h2>
 
     <div class="result-duration">
@@ -44,6 +44,10 @@
           </div>
         </template>
       </div>
+      <div class="chart-container"><div id="chart-input-soil"></div></div>
+      <div class="chart-container"><div id="chart-input-temp"></div></div>
+      <div class="chart-container"><div id="chart-input-humidity"></div></div>
+      <div class="chart-container"><div id="chart-input-rain"></div></div>
     </div>
 
     <div class="membership-section">
@@ -61,6 +65,7 @@
           </template>
         </div>
       </div>
+      <div class="chart-container"><div id="chart-output-duration"></div></div>
     </div>
 
     <div class="rules-list" x-show="result.activeRules.length > 0">

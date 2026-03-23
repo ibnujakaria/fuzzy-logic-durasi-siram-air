@@ -98,6 +98,10 @@
         }
       },
 
+      renderCharts() {
+        if (this.result) renderFuzzyCharts(this.result);
+      },
+
       formatDuration(seconds) {
         if (seconds === 0) return 'Tidak perlu penyiraman';
         const m = Math.floor(seconds / 60);

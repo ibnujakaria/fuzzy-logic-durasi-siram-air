@@ -1,0 +1,221 @@
+<script>
+  function triangularMf(a, b, c) {
+    return function(x) {
+      if (x <= a || x >= c) return 0;
+      if (a === b && x === a) return 1;
+      if (b === c && x === c) return 1;
+      if (x <= b) return (x - a) / (b - a);
+      return (c - x) / (c - b);
+    };
+  }
+
+  function trapezoidalMf(a, b, c, d) {
+    return function(x) {
+      if (x >= b && x <= c) return 1;
+      if (x <= a || x >= d) return 0;
+      if (x < b) return (x - a) / (b - a);
+      return (d - x) / (d - c);
+    };
+  }
+
+  function sampleMf(fn, min, max, steps) {
+    var data = [];
+    var step = (max - min) / steps;
+    for (var i = 0; i <= steps; i++) {
+      var x = min + i * step;
+      data.push({ x: Math.round(x * 1000) / 1000, y: Math.round(fn(x) * 1000) / 1000 });
+    }
+    return data;
+  }
+
+  var fuzzyChartDefs = {
+    soilMoisture: {
+      id: 'chart-input-soil', title: 'Kelembapan Tanah', xLabel: 'Nilai Sensor',
+      min: 0, max: 1023, inputKey: 'soilMoisture',
+      sets: [
+        { name: 'Kering', fn: trapezoidalMf(0, 0, 200, 400), color: '#f97316' },
+        { name: 'Lembap', fn: triangularMf(300, 500, 700), color: '#22d3ee' },
+        { name: 'Basah', fn: trapezoidalMf(600, 800, 1023, 1023), color: '#3b82f6' }
+      ]
+    },
+    airTemperature: {
+      id: 'chart-input-temp', title: 'Suhu Udara', xLabel: 'Suhu (\u00B0C)',
+      min: 0, max: 50, inputKey: 'airTemperature',
+      sets: [
+        { name: 'Sejuk', fn: trapezoidalMf(0, 0, 18, 25), color: '#22d3ee' },
+        { name: 'Hangat', fn: triangularMf(22, 28, 34), color: '#facc15' },
+        { name: 'Panas', fn: trapezoidalMf(32, 38, 50, 50), color: '#ef4444' }
+      ]
+    },
+    airHumidity: {
+      id: 'chart-input-humidity', title: 'Kelembapan Udara', xLabel: 'Kelembapan (%)',
+      min: 0, max: 100, inputKey: 'airHumidity',
+      sets: [
+        { name: 'Rendah', fn: trapezoidalMf(0, 0, 25, 45), color: '#f97316' },
+        { name: 'Sedang', fn: triangularMf(35, 55, 75), color: '#22d3ee' },
+        { name: 'Tinggi', fn: trapezoidalMf(65, 80, 100, 100), color: '#3b82f6' }
+      ]
+    },
+    rainPrecipitation: {
+      id: 'chart-input-rain', title: 'Curah Hujan', xLabel: 'Presipitasi (mm)',
+      min: 0, max: 10, inputKey: 'rainPrecipitation',
+      sets: [
+        { name: 'Tidak Ada', fn: trapezoidalMf(0, 0, 0.1, 0.5), color: '#facc15' },
+        { name: 'Ringan', fn: triangularMf(0.3, 1.5, 4), color: '#22d3ee' },
+        { name: 'Lebat', fn: trapezoidalMf(3, 6, 50, 50), color: '#3b82f6' }
+      ]
+    },
+    output: {
+      id: 'chart-output-duration', title: 'Durasi Penyiraman (Output)', xLabel: 'Durasi (detik)',
+      min: 0, max: 300, inputKey: null,
+      sets: [
+        { name: 'Nol', fn: trapezoidalMf(0, 0, 0, 20), color: '#94a3b8' },
+        { name: 'Pendek', fn: triangularMf(10, 60, 110), color: '#22d3ee' },
+        { name: 'Sedang', fn: triangularMf(80, 150, 220), color: '#facc15' },
+        { name: 'Panjang', fn: triangularMf(180, 240, 280), color: '#f97316' },
+        { name: 'Sangat Panjang', fn: trapezoidalMf(250, 280, 300, 300), color: '#ef4444' }
+      ]
+    }
+  };
+
+  function buildFuzzyChart(def, inputValue, markerPoints) {
+    var steps = 200;
+    var series = def.sets.map(function(s) {
+      return { name: s.name, data: sampleMf(s.fn, def.min, def.max, steps) };
+    });
+
+    // Add marker series for dots at the input value
+    if (markerPoints && markerPoints.length > 0) {
+      series.push({
+        name: 'Nilai Input',
+        data: markerPoints,
+        type: 'scatter'
+      });
+    }
+
+    var colors = def.sets.map(function(s) { return s.color; });
+    var strokeWidths = def.sets.map(function() { return 2.5; });
+    var seriesTypes = def.sets.map(function() { return 'line'; });
+
+    if (markerPoints && markerPoints.length > 0) {
+      colors.push('#ffffff');
+      strokeWidths.push(0);
+      seriesTypes.push('scatter');
+    }
+
+    var annotations = {};
+    if (inputValue !== null && inputValue !== undefined) {
+      annotations = {
+        xaxis: [{
+          x: inputValue,
+          borderColor: '#38bdf8',
+          strokeDashArray: 4,
+          label: {
+            text: String(inputValue),
+            style: { color: '#0f172a', background: '#38bdf8', fontSize: '11px', padding: { left: 6, right: 6, top: 2, bottom: 2 } },
+            position: 'top',
+            orientation: 'horizontal'
+          }
+        }]
+      };
+    }
+
+    return {
+      chart: {
+        type: 'line', height: 240, background: 'transparent',
+        toolbar: { show: false }, zoom: { enabled: false },
+        animations: { enabled: false }
+      },
+      series: series,
+      stroke: { width: strokeWidths, curve: 'straight' },
+      colors: colors,
+      xaxis: {
+        type: 'numeric', min: def.min, max: def.max,
+        title: { text: def.xLabel, style: { color: '#94a3b8', fontSize: '11px' } },
+        labels: { style: { colors: '#64748b', fontSize: '10px' } },
+        axisBorder: { color: '#334155' }, axisTicks: { color: '#334155' }
+      },
+      yaxis: {
+        min: 0, max: 1.05, tickAmount: 4,
+        title: { text: '\u03BC(x)', style: { color: '#94a3b8', fontSize: '11px' } },
+        labels: { style: { colors: '#64748b' }, formatter: function(v) { return v.toFixed(1); } }
+      },
+      legend: {
+        position: 'top', horizontalAlign: 'center',
+        labels: { colors: '#94a3b8' }, fontSize: '11px', markers: { size: 5 }
+      },
+      grid: { borderColor: '#1e293b', strokeDashArray: 3 },
+      tooltip: {
+        theme: 'dark',
+        x: { formatter: function(v) { return def.xLabel + ': ' + v; } },
+        y: { formatter: function(v) { return '\u03BC = ' + (v != null ? v.toFixed(3) : '0'); } }
+      },
+      markers: {
+        size: series.map(function(s) { return s.type === 'scatter' ? 7 : 0; }),
+        strokeWidth: series.map(function(s) { return s.type === 'scatter' ? 2 : 0; }),
+        strokeColors: '#38bdf8',
+        hover: { size: 8 }
+      },
+      annotations: annotations,
+      title: {
+        text: def.title, align: 'center',
+        style: { color: '#7dd3fc', fontSize: '12px', fontWeight: 600 }
+      }
+    };
+  }
+
+  function renderFuzzyCharts(result) {
+    var chartInstances = window._fuzzyCharts || {};
+    // Destroy previous charts
+    Object.values(chartInstances).forEach(function(c) { c.destroy(); });
+    window._fuzzyCharts = {};
+
+    var inputDefs = ['soilMoisture', 'airTemperature', 'airHumidity', 'rainPrecipitation'];
+
+    inputDefs.forEach(function(key) {
+      var def = fuzzyChartDefs[key];
+      var val = result.inputs[def.inputKey];
+      var memberships = result.memberships[def.inputKey] || {};
+
+      // Create dot markers at (inputValue, membershipDegree) for each non-zero set
+      var markers = [];
+      def.sets.forEach(function(s, idx) {
+        var setKey = Object.keys(memberships)[idx];
+        var degree = setKey ? (memberships[setKey] || 0) : 0;
+        if (degree > 0) {
+          markers.push({ x: val, y: Math.round(degree * 1000) / 1000 });
+        }
+      });
+
+      var el = document.getElementById(def.id);
+      if (!el) return;
+      var opts = buildFuzzyChart(def, val, markers);
+      var chart = new ApexCharts(el, opts);
+      chart.render();
+      window._fuzzyCharts[def.id] = chart;
+    });
+
+    // Output chart
+    var outDef = fuzzyChartDefs.output;
+    var outVal = result.wateringDuration;
+    var outMemberships = result.outputMemberships || {};
+
+    var outMarkers = [];
+    outDef.sets.forEach(function(s) {
+      var setKeys = { 'Nol': 'zero', 'Pendek': 'short', 'Sedang': 'medium', 'Panjang': 'long', 'Sangat Panjang': 'very_long' };
+      var degree = outMemberships[setKeys[s.name]] || 0;
+      if (degree > 0) {
+        // Show dot at the output value with the activation strength
+        outMarkers.push({ x: outVal, y: Math.round(degree * 1000) / 1000 });
+      }
+    });
+
+    var outEl = document.getElementById(outDef.id);
+    if (outEl) {
+      var outOpts = buildFuzzyChart(outDef, outVal, outMarkers);
+      var outChart = new ApexCharts(outEl, outOpts);
+      outChart.render();
+      window._fuzzyCharts[outDef.id] = outChart;
+    }
+  }
+</script>

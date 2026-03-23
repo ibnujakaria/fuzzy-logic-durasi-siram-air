@@ -112,7 +112,13 @@
   .rain-empty { color: #94a3b8; text-align: center; padding: 16px; font-size: 0.85rem; }
   .loading { text-align: center; padding: 16px; color: #94a3b8; }
   .error { text-align: center; padding: 16px; color: #f87171; }
+  .chart-container {
+    background: #0f172a; border: 1px solid #334155; border-radius: 8px;
+    padding: 8px 4px; margin: 12px 0;
+  }
 </style>
+
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 
 <div class="container" x-data="fuzzyApp()" x-init="init()">
 
@@ -139,4 +145,5 @@
 
 </div>
 
+<%- include('fuzzy/charts') %>
 <%- include('fuzzy/app') %>
