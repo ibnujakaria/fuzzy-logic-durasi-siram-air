@@ -1,0 +1,204 @@
+<script>
+  function fuzzyApp() {
+    return {
+      location: null,
+      soilMoisture: '',
+      airTemp: '',
+      airHumidity: '',
+      rainSource: '',
+      manualRain: '',
+      selectedTimeIdx: '',
+      weatherTimes: [],
+      weatherTimesLoading: false,
+      weatherTimesError: null,
+      fuzzifyLoading: false,
+      fuzzifyError: null,
+      result: null,
+
+      async init() {
+        this.fetchLocation();
+      },
+
+      async fetchLocation() {
+        try {
+          const res = await fetch('/api/location');
+          if (res.ok) this.location = await res.json();
+        } catch (e) {}
+      },
+
+      setRainSource(source) {
+        this.rainSource = source;
+        this.selectedTimeIdx = '';
+        this.manualRain = '';
+        if (source === 'api' && this.weatherTimes.length === 0) {
+          this.fetchWeatherTimes();
+        }
+      },
+
+      async fetchWeatherTimes() {
+        this.weatherTimesLoading = true;
+        this.weatherTimesError = null;
+        try {
+          const res = await fetch('/api/weather-times');
+          if (!res.ok) throw new Error('Gagal mengambil data');
+          this.weatherTimes = await res.json();
+        } catch (e) {
+          this.weatherTimesError = 'Gagal memuat data prakiraan cuaca.';
+        } finally {
+          this.weatherTimesLoading = false;
+        }
+      },
+
+      onTimeSelected() {},
+
+      getRainValue() {
+        if (this.rainSource === 'manual') {
+          return this.manualRain !== '' ? Number(this.manualRain) : null;
+        }
+        if (this.rainSource === 'api' && this.selectedTimeIdx !== '') {
+          return this.weatherTimes[this.selectedTimeIdx].tp;
+        }
+        return null;
+      },
+
+      canFuzzify() {
+        if (this.fuzzifyLoading) return false;
+        if (this.soilMoisture === '' || this.airTemp === '' || this.airHumidity === '') return false;
+        if (this.rainSource === '') return false;
+        if (this.rainSource === 'manual' && this.manualRain === '') return false;
+        if (this.rainSource === 'api' && this.selectedTimeIdx === '') return false;
+        return true;
+      },
+
+      async fuzzify() {
+        if (!this.canFuzzify()) return;
+        this.fuzzifyError = null;
+        this.fuzzifyLoading = true;
+        try {
+          const body = {
+            soilMoisture: Number(this.soilMoisture),
+            airTemperature: Number(this.airTemp),
+            airHumidity: Number(this.airHumidity),
+            rainPrecipitation: this.getRainValue(),
+          };
+          const res = await fetch('/api/fuzzify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Gagal memproses');
+          }
+          this.result = await res.json();
+        } catch (e) {
+          this.fuzzifyError = e.message || 'Gagal memproses fuzzy logic.';
+        } finally {
+          this.fuzzifyLoading = false;
+        }
+      },
+
+      formatDuration(seconds) {
+        if (seconds === 0) return 'Tidak perlu penyiraman';
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        if (m === 0) return s + ' detik penyiraman';
+        if (s === 0) return m + ' menit penyiraman';
+        return m + ' menit ' + s + ' detik penyiraman';
+      },
+
+      getOutputMembershipDisplay() {
+        if (!this.result || !this.result.outputMemberships) return [];
+        const m = this.result.outputMemberships;
+        const sets = [
+          { name: 'zero', label: 'Nol (0-20s)', color: '#94a3b8' },
+          { name: 'short', label: 'Pendek (10-110s)', color: '#22d3ee' },
+          { name: 'medium', label: 'Sedang (80-220s)', color: '#facc15' },
+          { name: 'long', label: 'Panjang (180-280s)', color: '#f97316' },
+          { name: 'very_long', label: 'Sangat Panjang (250-300s)', color: '#ef4444' },
+        ];
+        return sets.map(s => ({ ...s, value: m[s.name] ?? 0 }));
+      },
+
+      getMembershipDisplay() {
+        if (!this.result) return [];
+        const m = this.result.memberships;
+        const vars = [
+          {
+            name: 'soilMoisture', label: 'Kelembapan Tanah',
+            sets: [
+              { name: 'dry', label: 'Kering', color: '#f97316' },
+              { name: 'moist', label: 'Lembap', color: '#22d3ee' },
+              { name: 'wet', label: 'Basah', color: '#3b82f6' },
+            ]
+          },
+          {
+            name: 'airTemperature', label: 'Suhu Udara',
+            sets: [
+              { name: 'cool', label: 'Sejuk', color: '#22d3ee' },
+              { name: 'warm', label: 'Hangat', color: '#facc15' },
+              { name: 'hot', label: 'Panas', color: '#ef4444' },
+            ]
+          },
+          {
+            name: 'airHumidity', label: 'Kelembapan Udara',
+            sets: [
+              { name: 'low', label: 'Rendah', color: '#f97316' },
+              { name: 'medium', label: 'Sedang', color: '#22d3ee' },
+              { name: 'high', label: 'Tinggi', color: '#3b82f6' },
+            ]
+          },
+          {
+            name: 'rainPrecipitation', label: 'Curah Hujan',
+            sets: [
+              { name: 'none', label: 'Tidak Ada', color: '#facc15' },
+              { name: 'light', label: 'Ringan', color: '#22d3ee' },
+              { name: 'heavy', label: 'Lebat', color: '#3b82f6' },
+            ]
+          },
+        ];
+        return vars.map(v => ({
+          ...v,
+          sets: v.sets.map(s => ({ ...s, value: m[v.name]?.[s.name] ?? 0 }))
+        }));
+      },
+
+      formatRule(rule) {
+        const labels = {
+          soilMoisture: 'Tanah', airTemperature: 'Suhu',
+          airHumidity: 'Kelembapan', rainPrecipitation: 'Hujan',
+        };
+        const setLabels = {
+          dry: 'Kering', moist: 'Lembap', wet: 'Basah',
+          cool: 'Sejuk', warm: 'Hangat', hot: 'Panas',
+          low: 'Rendah', medium: 'Sedang', high: 'Tinggi',
+          none: 'Tidak Ada', light: 'Ringan', heavy: 'Lebat',
+          zero: 'Nol', short: 'Pendek', long: 'Panjang', very_long: 'Sangat Panjang',
+        };
+        const parts = Object.entries(rule.conditions).map(
+          ([k, v]) => (labels[k] || k) + '=' + (setLabels[v] || v)
+        );
+        return parts.join(', ') + ' \u2192 ' + (setLabels[rule.output] || rule.output);
+      },
+
+      getRainIcon(code) {
+        const icons = {
+          0: '\u2600\uFE0F',
+          1: '\u26C5', 2: '\u26C5',
+          3: '\u2601\uFE0F', 4: '\u2601\uFE0F',
+          5: '\uD83C\uDF24',
+          10: '\uD83C\uDF26',
+          45: '\uD83C\uDF2B',
+          60: '\uD83C\uDF27', 61: '\uD83C\uDF27', 63: '\uD83C\uDF27',
+          80: '\u26C8',
+          95: '\u26A1', 97: '\u26A1',
+        };
+        return icons[code] || '\uD83C\uDF24';
+      },
+
+      formatTime(dt) {
+        return new Date(dt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+      }
+    };
+  }
+</script>

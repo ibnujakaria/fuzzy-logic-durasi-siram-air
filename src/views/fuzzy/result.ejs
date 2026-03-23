@@ -1,0 +1,76 @@
+<template x-if="result">
+  <div class="result-card">
+    <h2>Hasil Analisis Fuzzy</h2>
+
+    <div class="result-duration">
+      <div class="duration-value" x-text="result.wateringDuration + ' detik'"></div>
+      <div class="duration-label" x-text="formatDuration(result.wateringDuration)"></div>
+    </div>
+
+    <div class="result-inputs">
+      <div class="result-input-item">
+        <div class="ri-label">Kelembapan Tanah</div>
+        <div class="ri-value" x-text="result.inputs.soilMoisture"></div>
+      </div>
+      <div class="result-input-item">
+        <div class="ri-label">Suhu Udara</div>
+        <div class="ri-value" x-text="result.inputs.airTemperature + '\u00B0C'"></div>
+      </div>
+      <div class="result-input-item">
+        <div class="ri-label">Kelembapan Udara</div>
+        <div class="ri-value" x-text="result.inputs.airHumidity + '%'"></div>
+      </div>
+      <div class="result-input-item">
+        <div class="ri-label">Curah Hujan</div>
+        <div class="ri-value" x-text="result.inputs.rainPrecipitation + ' mm'"></div>
+      </div>
+    </div>
+
+    <div class="membership-section">
+      <h3>Derajat Keanggotaan Input</h3>
+      <div class="membership-grid">
+        <template x-for="varItem in getMembershipDisplay()" :key="varItem.name">
+          <div class="membership-var">
+            <div class="mv-title" x-text="varItem.label"></div>
+            <template x-for="set in varItem.sets" :key="set.name">
+              <div class="membership-bar-row">
+                <span class="mb-label" x-text="set.label"></span>
+                <div class="mb-track">
+                  <div class="mb-fill" :style="'width:' + (set.value * 100) + '%; background:' + set.color"></div>
+                </div>
+                <span class="mb-value" x-text="set.value.toFixed(2)"></span>
+              </div>
+            </template>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <div class="membership-section">
+      <h3>Derajat Keanggotaan Output (Durasi Penyiraman)</h3>
+      <div class="membership-grid">
+        <div class="membership-var" style="grid-column: 1 / -1;">
+          <template x-for="set in getOutputMembershipDisplay()" :key="set.name">
+            <div class="membership-bar-row">
+              <span class="mb-label" x-text="set.label" style="min-width:100px"></span>
+              <div class="mb-track">
+                <div class="mb-fill" :style="'width:' + (set.value * 100) + '%; background:' + set.color"></div>
+              </div>
+              <span class="mb-value" x-text="set.value.toFixed(3)"></span>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+
+    <div class="rules-list" x-show="result.activeRules.length > 0">
+      <h3>Aturan Aktif</h3>
+      <template x-for="(rule, i) in result.activeRules" :key="i">
+        <div class="rule-item">
+          <span x-text="formatRule(rule)"></span>
+          <span class="rule-strength" x-text="rule.strength.toFixed(3)"></span>
+        </div>
+      </template>
+    </div>
+  </div>
+</template>

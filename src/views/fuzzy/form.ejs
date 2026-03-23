@@ -1,0 +1,30 @@
+<div class="form-card">
+  <h2>Data Input Sensor</h2>
+
+  <div class="form-group">
+    <label for="soilMoisture">Kelembapan Tanah</label>
+    <input type="number" id="soilMoisture" x-model="soilMoisture" min="0" max="1023" placeholder="0" />
+    <div class="hint">Rentang: 0 (kering) - 1023 (basah) &mdash; sensor analog</div>
+  </div>
+
+  <div class="form-group">
+    <label for="airTemp">Suhu Udara (&deg;C)</label>
+    <input type="number" id="airTemp" x-model="airTemp" step="0.1" placeholder="0" />
+  </div>
+
+  <div class="form-group">
+    <label for="airHumidity">Kelembapan Udara (%)</label>
+    <input type="number" id="airHumidity" x-model="airHumidity" min="0" max="100" placeholder="0" />
+    <div class="hint">Rentang: 0 - 100%</div>
+  </div>
+
+  <%- include('rain-input') %>
+
+  <button class="btn-fuzzify" @click="fuzzify()" :disabled="!canFuzzify()">
+    <span x-text="fuzzifyLoading ? 'Memproses...' : 'Fuzzify'"></span>
+  </button>
+
+  <template x-if="fuzzifyError">
+    <div class="error" style="margin-top:12px" x-text="fuzzifyError"></div>
+  </template>
+</div>

@@ -1,0 +1,65 @@
+<div class="form-group">
+  <label>Curah Hujan (Presipitasi)</label>
+  <div class="rain-source-toggle">
+    <div class="rain-source-btn" :class="rainSource === 'api' && 'active'" @click="setRainSource('api')">
+      Data Realtime BMKG
+    </div>
+    <div class="rain-source-btn" :class="rainSource === 'manual' && 'active'" @click="setRainSource('manual')">
+      Input Manual
+    </div>
+  </div>
+
+  <!-- API mode: time picker -->
+  <template x-if="rainSource === 'api'">
+    <div>
+      <template x-if="weatherTimesLoading">
+        <div class="loading">Memuat data prakiraan...</div>
+      </template>
+      <template x-if="weatherTimesError">
+        <div class="error" x-text="weatherTimesError"></div>
+      </template>
+      <template x-if="!weatherTimesLoading && !weatherTimesError && weatherTimes.length === 0">
+        <div class="rain-empty">Tidak ada data prakiraan tersedia.</div>
+      </template>
+      <template x-if="!weatherTimesLoading && !weatherTimesError && weatherTimes.length > 0">
+        <div>
+          <select x-model="selectedTimeIdx" @change="onTimeSelected()" style="margin-bottom:8px">
+            <option value="" disabled selected>Pilih waktu prakiraan...</option>
+            <template x-for="(item, idx) in weatherTimes" :key="idx">
+              <option :value="idx" x-text="formatTime(item.local_datetime) + ' - ' + item.weather_desc + ' (' + item.tp + ' mm)'"></option>
+            </template>
+          </select>
+          <div class="hint">Pilih waktu untuk menggunakan data curah hujan dari BMKG</div>
+
+          <!-- Rain preview -->
+          <template x-if="selectedTimeIdx !== ''">
+            <div class="rain-preview">
+              <h3>Prakiraan Cuaca pada Waktu Terpilih</h3>
+              <div class="rain-grid">
+                <div class="rain-item selected">
+                  <div class="rain-time" x-text="formatTime(weatherTimes[selectedTimeIdx].local_datetime)"></div>
+                  <div class="rain-icon" x-text="getRainIcon(weatherTimes[selectedTimeIdx].weather)"></div>
+                  <div class="rain-desc" x-text="weatherTimes[selectedTimeIdx].weather_desc"></div>
+                  <div class="rain-detail">
+                    <span x-text="'Curah hujan: ' + weatherTimes[selectedTimeIdx].tp + ' mm'"></span>
+                  </div>
+                  <div class="rain-detail">
+                    <span x-text="'Tutupan awan: ' + weatherTimes[selectedTimeIdx].tcc + '%'"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+      </template>
+    </div>
+  </template>
+
+  <!-- Manual mode -->
+  <template x-if="rainSource === 'manual'">
+    <div>
+      <input type="number" x-model="manualRain" min="0" step="0.1" placeholder="0" />
+      <div class="hint">Total curah hujan dalam mm &mdash; 0 = tidak hujan, 0.1-0.5 = gerimis, 1-4 = hujan ringan, &gt;5 = hujan lebat</div>
+    </div>
+  </template>
+</div>
