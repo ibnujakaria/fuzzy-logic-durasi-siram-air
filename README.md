@@ -21,7 +21,8 @@ Aplikasi web untuk monitoring cuaca dan analisis penyiraman tanaman menggunakan 
 
 ```
 src/
-  server.ts              — Entry point & routing
+  app.ts                 — Konfigurasi Express & semua route
+  server.ts              — Entry point lokal (listen port 3780)
   services/
     bmkg.ts              — Service untuk API BMKG
   fuzzy/
@@ -34,6 +35,11 @@ src/
     home.ejs             — Halaman beranda
     index.ejs            — Halaman prakiraan cuaca
     fuzzy.ejs            — Halaman fuzzy logic
+    docs.ejs             — Halaman dokumentasi fuzzy logic
+netlify/
+  functions/
+    api.ts               — Wrapper serverless untuk Netlify
+netlify.toml             — Konfigurasi deploy Netlify
 ```
 
 ## Menjalankan
@@ -66,6 +72,32 @@ Server berjalan di `http://localhost:3780`.
 
 Response berisi durasi penyiraman (detik), derajat keanggotaan tiap input, dan aturan fuzzy yang aktif.
 
+## Deploy ke Netlify
+
+Aplikasi ini siap di-deploy ke [Netlify](https://www.netlify.com/) sebagai serverless function.
+
+### Langkah-langkah
+
+1. Push repository ke GitHub
+2. Buka [app.netlify.com](https://app.netlify.com/) dan login
+3. Klik **"Add new site"** → **"Import an existing project"**
+4. Pilih repository dari GitHub
+5. Netlify akan otomatis mendeteksi konfigurasi dari `netlify.toml` — tidak perlu mengubah pengaturan apapun
+6. Klik **"Deploy site"**
+
+### Cara Kerja
+
+- Semua request diarahkan ke serverless function di `netlify/functions/api.ts`
+- Function ini membungkus Express app menggunakan `serverless-http`
+- Template EJS di-bundle bersama function melalui pengaturan `included_files` di `netlify.toml`
+- Tidak ada build step tambahan yang diperlukan
+
+### Catatan
+
+- Pastikan tidak ada environment variable yang perlu diatur — aplikasi ini tidak memerlukan konfigurasi tambahan
+- Netlify free tier mendukung 125.000 function invocations per bulan
+- Jika terjadi cold start lambat, itu normal untuk serverless function
+
 ## Lokasi
 
-Lokasi saat ini di-hardcode ke **Gundih, Bubutan, Kota Surabaya** (kode: `35.78.13.1003`). Untuk mengubah lokasi, ganti nilai `LOCATION_ID` di `src/server.ts`.
+Lokasi saat ini di-hardcode ke **Gundih, Bubutan, Kota Surabaya** (kode: `35.78.13.1003`). Untuk mengubah lokasi, ganti nilai `LOCATION_ID` di `src/app.ts`.
