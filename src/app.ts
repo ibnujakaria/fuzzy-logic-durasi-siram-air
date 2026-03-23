@@ -8,7 +8,7 @@ import { wateringConfig } from "./fuzzy/watering-config";
 
 const LOCATION_ID = "35.78.13.1003";
 
-const VIEWS_DIR = path.join(__dirname, "views");
+const VIEWS_DIR = path.join(__dirname, "..", "src", "views");
 
 function logError(context: string, err: unknown): void {
   const timestamp = new Date().toISOString();
