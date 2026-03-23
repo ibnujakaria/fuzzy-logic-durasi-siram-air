@@ -15,12 +15,12 @@
     display: block; font-size: 0.85rem; color: #94a3b8;
     margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;
   }
-  .form-group input {
+  .form-group input, .form-group select {
     width: 100%; padding: 10px 14px; border-radius: 8px;
     border: 1px solid #334155; background: #0f172a; color: #e2e8f0;
     font-size: 1rem; outline: none; transition: border-color 0.15s;
   }
-  .form-group input:focus { border-color: #38bdf8; }
+  .form-group input:focus, .form-group select:focus { border-color: #38bdf8; }
   .form-group .hint { font-size: 0.75rem; color: #64748b; margin-top: 4px; }
   .btn-fuzzify {
     width: 100%; padding: 12px; border: none; border-radius: 8px;
@@ -37,26 +37,12 @@
   }
   .location-card h2 { font-size: 1.1rem; color: #7dd3fc; margin-bottom: 8px; }
   .location-detail { display: flex; flex-wrap: wrap; gap: 12px 24px; font-size: 0.9rem; color: #94a3b8; }
-  .rain-card, .result-card {
+  .result-card {
     background: linear-gradient(135deg, #0c4a6e, #164e63);
     border-radius: 12px; padding: 24px; margin-bottom: 24px;
     border: 1px solid #155e75;
   }
-  .rain-card h2, .result-card h2 { font-size: 1.1rem; color: #7dd3fc; margin-bottom: 16px; }
-  .rain-grid {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 12px;
-  }
-  .rain-item {
-    background: rgba(255,255,255,0.05); border-radius: 8px; padding: 14px; text-align: center;
-  }
-  .rain-item .rain-time { font-size: 0.8rem; color: #94a3b8; }
-  .rain-item .rain-icon { font-size: 1.5rem; margin: 6px 0; }
-  .rain-item .rain-desc { font-size: 0.85rem; color: #67e8f9; }
-  .rain-item .rain-detail { font-size: 0.8rem; color: #94a3b8; margin-top: 4px; }
-  .rain-empty { color: #94a3b8; text-align: center; padding: 20px; }
-  .loading { text-align: center; padding: 20px; color: #94a3b8; }
-  .error { text-align: center; padding: 20px; color: #f87171; }
+  .result-card h2 { font-size: 1.1rem; color: #7dd3fc; margin-bottom: 16px; }
   .result-duration {
     text-align: center; padding: 20px;
   }
@@ -98,6 +84,38 @@
   .rule-item .rule-strength {
     color: #34d399; font-weight: 600; min-width: 50px; text-align: right;
   }
+  .rain-source-toggle {
+    display: flex; gap: 8px; margin-bottom: 12px;
+  }
+  .rain-source-btn {
+    flex: 1; padding: 10px; border: 1px solid #334155; border-radius: 8px;
+    background: #0f172a; color: #94a3b8; font-size: 0.85rem;
+    cursor: pointer; text-align: center; transition: all 0.15s;
+  }
+  .rain-source-btn:hover { border-color: #38bdf8; }
+  .rain-source-btn.active { border-color: #38bdf8; background: rgba(56,189,248,0.1); color: #38bdf8; }
+  .rain-preview {
+    background: rgba(255,255,255,0.03); border: 1px solid #334155;
+    border-radius: 8px; padding: 16px; margin-top: 12px;
+  }
+  .rain-preview h3 { font-size: 0.85rem; color: #7dd3fc; margin-bottom: 12px; }
+  .rain-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 10px;
+  }
+  .rain-item {
+    background: rgba(255,255,255,0.05); border-radius: 8px; padding: 12px; text-align: center;
+    cursor: pointer; border: 1px solid transparent; transition: border-color 0.15s;
+  }
+  .rain-item:hover { border-color: #334155; }
+  .rain-item.selected { border-color: #38bdf8; background: rgba(56,189,248,0.08); }
+  .rain-item .rain-time { font-size: 0.8rem; color: #94a3b8; }
+  .rain-item .rain-icon { font-size: 1.3rem; margin: 4px 0; }
+  .rain-item .rain-desc { font-size: 0.8rem; color: #67e8f9; }
+  .rain-item .rain-detail { font-size: 0.75rem; color: #94a3b8; margin-top: 4px; }
+  .rain-empty { color: #94a3b8; text-align: center; padding: 16px; font-size: 0.85rem; }
+  .loading { text-align: center; padding: 16px; color: #94a3b8; }
+  .error { text-align: center; padding: 16px; color: #f87171; }
 </style>
 
 <div class="container" x-data="fuzzyApp()" x-init="init()">
@@ -141,7 +159,74 @@
       <div class="hint">Rentang: 0 - 100%</div>
     </div>
 
-    <button class="btn-fuzzify" @click="fuzzify()" :disabled="fuzzifyLoading">
+    <!-- 4th Input: Rain Precipitation -->
+    <div class="form-group">
+      <label>Curah Hujan (Presipitasi)</label>
+      <div class="rain-source-toggle">
+        <div class="rain-source-btn" :class="rainSource === 'api' && 'active'" @click="setRainSource('api')">
+          Data Realtime BMKG
+        </div>
+        <div class="rain-source-btn" :class="rainSource === 'manual' && 'active'" @click="setRainSource('manual')">
+          Input Manual
+        </div>
+      </div>
+
+      <!-- API mode: time picker -->
+      <template x-if="rainSource === 'api'">
+        <div>
+          <template x-if="weatherTimesLoading">
+            <div class="loading">Memuat data prakiraan...</div>
+          </template>
+          <template x-if="weatherTimesError">
+            <div class="error" x-text="weatherTimesError"></div>
+          </template>
+          <template x-if="!weatherTimesLoading && !weatherTimesError && weatherTimes.length === 0">
+            <div class="rain-empty">Tidak ada data prakiraan tersedia.</div>
+          </template>
+          <template x-if="!weatherTimesLoading && !weatherTimesError && weatherTimes.length > 0">
+            <div>
+              <select x-model="selectedTimeIdx" @change="onTimeSelected()" style="margin-bottom:8px">
+                <option value="" disabled selected>Pilih waktu prakiraan...</option>
+                <template x-for="(item, idx) in weatherTimes" :key="idx">
+                  <option :value="idx" x-text="formatTime(item.local_datetime) + ' - ' + item.weather_desc + ' (' + item.tp + ' mm)'"></option>
+                </template>
+              </select>
+              <div class="hint">Pilih waktu untuk menggunakan data curah hujan dari BMKG</div>
+
+              <!-- Rain preview -->
+              <template x-if="selectedTimeIdx !== ''">
+                <div class="rain-preview">
+                  <h3>Prakiraan Cuaca pada Waktu Terpilih</h3>
+                  <div class="rain-grid">
+                    <div class="rain-item selected">
+                      <div class="rain-time" x-text="formatTime(weatherTimes[selectedTimeIdx].local_datetime)"></div>
+                      <div class="rain-icon" x-text="getRainIcon(weatherTimes[selectedTimeIdx].weather)"></div>
+                      <div class="rain-desc" x-text="weatherTimes[selectedTimeIdx].weather_desc"></div>
+                      <div class="rain-detail">
+                        <span x-text="'Curah hujan: ' + weatherTimes[selectedTimeIdx].tp + ' mm'"></span>
+                      </div>
+                      <div class="rain-detail">
+                        <span x-text="'Tutupan awan: ' + weatherTimes[selectedTimeIdx].tcc + '%'"></span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </template>
+        </div>
+      </template>
+
+      <!-- Manual mode -->
+      <template x-if="rainSource === 'manual'">
+        <div>
+          <input type="number" x-model="manualRain" min="0" step="0.1" placeholder="0" />
+          <div class="hint">Total curah hujan dalam mm &mdash; 0 = tidak hujan, 0.1-0.5 = gerimis, 1-4 = hujan ringan, &gt;5 = hujan lebat</div>
+        </div>
+      </template>
+    </div>
+
+    <button class="btn-fuzzify" @click="fuzzify()" :disabled="!canFuzzify()">
       <span x-text="fuzzifyLoading ? 'Memproses...' : 'Fuzzify'"></span>
     </button>
 
@@ -174,7 +259,7 @@
           <div class="ri-value" x-text="result.inputs.airHumidity + '%'"></div>
         </div>
         <div class="result-input-item">
-          <div class="ri-label">Curah Hujan (BMKG)</div>
+          <div class="ri-label">Curah Hujan</div>
           <div class="ri-value" x-text="result.inputs.rainPrecipitation + ' mm'"></div>
         </div>
       </div>
@@ -211,41 +296,6 @@
     </div>
   </template>
 
-  <!-- Rain Probability -->
-  <div class="rain-card">
-    <h2>Probabilitas Hujan 3 Jam ke Depan</h2>
-
-    <template x-if="rainLoading">
-      <div class="loading">Memuat data hujan...</div>
-    </template>
-
-    <template x-if="rainError">
-      <div class="error" x-text="rainError"></div>
-    </template>
-
-    <template x-if="!rainLoading && !rainError && rainData.length === 0">
-      <div class="rain-empty">Tidak ada data prakiraan untuk 3 jam ke depan.</div>
-    </template>
-
-    <template x-if="!rainLoading && !rainError && rainData.length > 0">
-      <div class="rain-grid">
-        <template x-for="item in rainData" :key="item.datetime">
-          <div class="rain-item">
-            <div class="rain-time" x-text="formatTime(item.local_datetime)"></div>
-            <div class="rain-icon" x-text="getRainIcon(item.weather)"></div>
-            <div class="rain-desc" x-text="item.weather_desc"></div>
-            <div class="rain-detail">
-              <span x-text="'Curah hujan: ' + item.tp + ' mm'"></span>
-            </div>
-            <div class="rain-detail">
-              <span x-text="'Tutupan awan: ' + item.tcc + '%'"></span>
-            </div>
-          </div>
-        </template>
-      </div>
-    </template>
-  </div>
-
 </div>
 
 <script>
@@ -255,42 +305,86 @@
       soilMoisture: '',
       airTemp: '',
       airHumidity: '',
-      rainLoading: true,
-      rainError: null,
-      rainData: [],
+      rainSource: '',
+      manualRain: '',
+      selectedTimeIdx: '',
+      weatherTimes: [],
+      weatherTimesLoading: false,
+      weatherTimesError: null,
       fuzzifyLoading: false,
       fuzzifyError: null,
       result: null,
 
       async init() {
-        await Promise.all([this.fetchLocation(), this.fetchRainData()]);
+        this.fetchLocation();
       },
 
       async fetchLocation() {
         try {
           const res = await fetch('/api/location');
           if (res.ok) this.location = await res.json();
-        } catch (e) {
-          // non-critical, silently ignore
+        } catch (e) {}
+      },
+
+      setRainSource(source) {
+        this.rainSource = source;
+        this.selectedTimeIdx = '';
+        this.manualRain = '';
+        if (source === 'api' && this.weatherTimes.length === 0) {
+          this.fetchWeatherTimes();
         }
       },
 
-      async fuzzify() {
-        if (this.soilMoisture === '' || this.airTemp === '' || this.airHumidity === '') {
-          this.fuzzifyError = 'Semua field harus diisi.';
-          return;
+      async fetchWeatherTimes() {
+        this.weatherTimesLoading = true;
+        this.weatherTimesError = null;
+        try {
+          const res = await fetch('/api/weather-times');
+          if (!res.ok) throw new Error('Gagal mengambil data');
+          this.weatherTimes = await res.json();
+        } catch (e) {
+          this.weatherTimesError = 'Gagal memuat data prakiraan cuaca.';
+        } finally {
+          this.weatherTimesLoading = false;
         }
+      },
+
+      onTimeSelected() {},
+
+      getRainValue() {
+        if (this.rainSource === 'manual') {
+          return this.manualRain !== '' ? Number(this.manualRain) : null;
+        }
+        if (this.rainSource === 'api' && this.selectedTimeIdx !== '') {
+          return this.weatherTimes[this.selectedTimeIdx].tp;
+        }
+        return null;
+      },
+
+      canFuzzify() {
+        if (this.fuzzifyLoading) return false;
+        if (this.soilMoisture === '' || this.airTemp === '' || this.airHumidity === '') return false;
+        if (this.rainSource === '') return false;
+        if (this.rainSource === 'manual' && this.manualRain === '') return false;
+        if (this.rainSource === 'api' && this.selectedTimeIdx === '') return false;
+        return true;
+      },
+
+      async fuzzify() {
+        if (!this.canFuzzify()) return;
         this.fuzzifyError = null;
         this.fuzzifyLoading = true;
         try {
+          const body = {
+            soilMoisture: Number(this.soilMoisture),
+            airTemperature: Number(this.airTemp),
+            airHumidity: Number(this.airHumidity),
+            rainPrecipitation: this.getRainValue(),
+          };
           const res = await fetch('/api/fuzzify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              soilMoisture: Number(this.soilMoisture),
-              airTemperature: Number(this.airTemp),
-              airHumidity: Number(this.airHumidity),
-            }),
+            body: JSON.stringify(body),
           });
           if (!res.ok) {
             const err = await res.json();
@@ -301,18 +395,6 @@
           this.fuzzifyError = e.message || 'Gagal memproses fuzzy logic.';
         } finally {
           this.fuzzifyLoading = false;
-        }
-      },
-
-      async fetchRainData() {
-        try {
-          const res = await fetch('/api/rain-probability');
-          if (!res.ok) throw new Error('Gagal mengambil data');
-          this.rainData = await res.json();
-        } catch (e) {
-          this.rainError = 'Gagal memuat data prakiraan hujan.';
-        } finally {
-          this.rainLoading = false;
         }
       },
 
@@ -354,7 +436,7 @@
             ]
           },
           {
-            name: 'rainPrecipitation', label: 'Curah Hujan (BMKG)',
+            name: 'rainPrecipitation', label: 'Curah Hujan',
             sets: [
               { name: 'none', label: 'Tidak Ada', color: '#facc15' },
               { name: 'light', label: 'Ringan', color: '#22d3ee' },

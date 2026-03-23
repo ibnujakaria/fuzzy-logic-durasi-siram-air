@@ -67,18 +67,44 @@ app.get("/api/rain-probability", async (_req, res) => {
   }
 });
 
+app.get("/api/weather-times", async (_req, res) => {
+  try {
+    const data = await fetchWeatherData(LOCATION_ID);
+    const cuaca = data.data[0].cuaca.flat();
+    const now = new Date();
+    const upcoming = cuaca
+      .filter((item) => new Date(item.local_datetime) >= now)
+      .map((item) => ({
+        local_datetime: item.local_datetime,
+        tp: item.tp,
+        weather_desc: item.weather_desc,
+        weather: item.weather,
+        tcc: item.tcc,
+      }));
+    res.json(upcoming);
+  } catch (err) {
+    logError("API /api/weather-times", err);
+    res.status(500).json({ error: "Gagal mengambil data waktu prakiraan" });
+  }
+});
+
 app.post("/api/fuzzify", async (req, res) => {
   try {
-    const { soilMoisture, airTemperature, airHumidity } = req.body;
+    const { soilMoisture, airTemperature, airHumidity, rainPrecipitation: manualRain } = req.body;
 
     if (soilMoisture == null || airTemperature == null || airHumidity == null) {
       res.status(400).json({ error: "Semua field sensor harus diisi." });
       return;
     }
 
-    const weatherData = await fetchWeatherData(LOCATION_ID);
-    const rainEntries = getRainProbabilityNext3Hours(weatherData);
-    const rainPrecipitation = rainEntries.reduce((sum, e) => sum + e.tp, 0);
+    let rainPrecipitation: number;
+    if (manualRain != null) {
+      rainPrecipitation = Number(manualRain);
+    } else {
+      const weatherData = await fetchWeatherData(LOCATION_ID);
+      const rainEntries = getRainProbabilityNext3Hours(weatherData);
+      rainPrecipitation = rainEntries.reduce((sum, e) => sum + e.tp, 0);
+    }
 
     const result = evaluate(wateringConfig, {
       soilMoisture: Number(soilMoisture),

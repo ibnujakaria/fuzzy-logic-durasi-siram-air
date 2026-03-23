@@ -17,31 +17,6 @@ Aplikasi web untuk monitoring cuaca dan analisis penyiraman tanaman menggunakan 
 
 - TypeScript, Express, EJS, Alpine.js
 
-## Struktur Proyek
-
-```
-src/
-  app.ts                 — Konfigurasi Express & semua route
-  server.ts              — Entry point lokal (listen port 3780)
-  services/
-    bmkg.ts              — Service untuk API BMKG
-  fuzzy/
-    types.ts             — Tipe data fuzzy (agnostik)
-    membership.ts        — Fungsi keanggotaan triangular & trapezoidal
-    engine.ts            — Mesin inferensi Mamdani (agnostik)
-    watering-config.ts   — Konfigurasi aturan penyiraman
-  views/
-    layout.ejs           — Layout dasar
-    home.ejs             — Halaman beranda
-    index.ejs            — Halaman prakiraan cuaca
-    fuzzy.ejs            — Halaman fuzzy logic
-    docs.ejs             — Halaman dokumentasi fuzzy logic
-netlify/
-  functions/
-    api.ts               — Wrapper serverless untuk Netlify
-netlify.toml             — Konfigurasi deploy Netlify
-```
-
 ## Menjalankan
 
 ```bash
