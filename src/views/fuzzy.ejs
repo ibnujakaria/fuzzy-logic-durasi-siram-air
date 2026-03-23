@@ -1,0 +1,409 @@
+<style>
+  header { text-align: center; margin-bottom: 32px; }
+  header h1 { font-size: 1.8rem; color: #38bdf8; }
+  header p { color: #94a3b8; margin-top: 4px; }
+  .back-link { color: #94a3b8; text-decoration: none; font-size: 0.85rem; }
+  .back-link:hover { color: #38bdf8; }
+  .form-card {
+    background: linear-gradient(135deg, #1e3a5f, #1e293b);
+    border-radius: 12px; padding: 28px; margin-bottom: 24px;
+    border: 1px solid #334155;
+  }
+  .form-card h2 { font-size: 1.1rem; color: #7dd3fc; margin-bottom: 20px; }
+  .form-group { margin-bottom: 16px; }
+  .form-group label {
+    display: block; font-size: 0.85rem; color: #94a3b8;
+    margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .form-group input {
+    width: 100%; padding: 10px 14px; border-radius: 8px;
+    border: 1px solid #334155; background: #0f172a; color: #e2e8f0;
+    font-size: 1rem; outline: none; transition: border-color 0.15s;
+  }
+  .form-group input:focus { border-color: #38bdf8; }
+  .form-group .hint { font-size: 0.75rem; color: #64748b; margin-top: 4px; }
+  .btn-fuzzify {
+    width: 100%; padding: 12px; border: none; border-radius: 8px;
+    background: linear-gradient(135deg, #0284c7, #0369a1); color: #fff;
+    font-size: 1rem; font-weight: 600; cursor: pointer;
+    transition: opacity 0.15s; margin-top: 8px;
+  }
+  .btn-fuzzify:hover { opacity: 0.9; }
+  .btn-fuzzify:disabled { opacity: 0.5; cursor: not-allowed; }
+  .location-card {
+    background: linear-gradient(135deg, #1e3a5f, #1e293b);
+    border-radius: 12px; padding: 20px; margin-bottom: 24px;
+    border: 1px solid #334155;
+  }
+  .location-card h2 { font-size: 1.1rem; color: #7dd3fc; margin-bottom: 8px; }
+  .location-detail { display: flex; flex-wrap: wrap; gap: 12px 24px; font-size: 0.9rem; color: #94a3b8; }
+  .rain-card, .result-card {
+    background: linear-gradient(135deg, #0c4a6e, #164e63);
+    border-radius: 12px; padding: 24px; margin-bottom: 24px;
+    border: 1px solid #155e75;
+  }
+  .rain-card h2, .result-card h2 { font-size: 1.1rem; color: #7dd3fc; margin-bottom: 16px; }
+  .rain-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+  }
+  .rain-item {
+    background: rgba(255,255,255,0.05); border-radius: 8px; padding: 14px; text-align: center;
+  }
+  .rain-item .rain-time { font-size: 0.8rem; color: #94a3b8; }
+  .rain-item .rain-icon { font-size: 1.5rem; margin: 6px 0; }
+  .rain-item .rain-desc { font-size: 0.85rem; color: #67e8f9; }
+  .rain-item .rain-detail { font-size: 0.8rem; color: #94a3b8; margin-top: 4px; }
+  .rain-empty { color: #94a3b8; text-align: center; padding: 20px; }
+  .loading { text-align: center; padding: 20px; color: #94a3b8; }
+  .error { text-align: center; padding: 20px; color: #f87171; }
+  .result-duration {
+    text-align: center; padding: 20px;
+  }
+  .result-duration .duration-value { font-size: 3rem; font-weight: 700; color: #fff; }
+  .result-duration .duration-label { font-size: 1rem; color: #67e8f9; margin-top: 4px; }
+  .result-inputs {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px; margin-top: 16px;
+  }
+  .result-input-item {
+    background: rgba(255,255,255,0.05); border-radius: 8px; padding: 10px; text-align: center;
+  }
+  .result-input-item .ri-label { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; }
+  .result-input-item .ri-value { font-size: 1rem; font-weight: 600; color: #e2e8f0; margin-top: 2px; }
+  .membership-section { margin-top: 20px; }
+  .membership-section h3 { font-size: 0.9rem; color: #7dd3fc; margin-bottom: 12px; }
+  .membership-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+  }
+  .membership-var {
+    background: rgba(255,255,255,0.05); border-radius: 8px; padding: 14px;
+  }
+  .membership-var .mv-title { font-size: 0.8rem; color: #7dd3fc; font-weight: 600; margin-bottom: 8px; }
+  .membership-bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .membership-bar-row .mb-label { font-size: 0.75rem; color: #94a3b8; min-width: 60px; }
+  .membership-bar-row .mb-track {
+    flex: 1; height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden;
+  }
+  .membership-bar-row .mb-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+  .membership-bar-row .mb-value { font-size: 0.75rem; color: #e2e8f0; min-width: 36px; text-align: right; }
+  .rules-list { margin-top: 16px; }
+  .rules-list h3 { font-size: 0.9rem; color: #7dd3fc; margin-bottom: 10px; }
+  .rule-item {
+    background: rgba(255,255,255,0.05); border-radius: 6px; padding: 8px 12px;
+    margin-bottom: 6px; font-size: 0.8rem; color: #94a3b8;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .rule-item .rule-strength {
+    color: #34d399; font-weight: 600; min-width: 50px; text-align: right;
+  }
+</style>
+
+<div class="container" x-data="fuzzyApp()" x-init="init()">
+
+  <header>
+    <a href="/" class="back-link">&larr; Kembali ke Beranda</a>
+    <h1>Fuzzy Logic</h1>
+    <p>Masukkan data sensor untuk analisis penyiraman</p>
+  </header>
+
+  <!-- Location -->
+  <template x-if="location">
+    <div class="location-card">
+      <h2 x-text="location.desa + ', ' + location.kecamatan"></h2>
+      <div class="location-detail">
+        <span x-text="'Kota/Kab: ' + location.kotkab"></span>
+        <span x-text="'Provinsi: ' + location.provinsi"></span>
+        <span x-text="'Koordinat: ' + location.lat + ', ' + location.lon"></span>
+      </div>
+    </div>
+  </template>
+
+  <!-- Input Form -->
+  <div class="form-card">
+    <h2>Data Input Sensor</h2>
+
+    <div class="form-group">
+      <label for="soilMoisture">Kelembapan Tanah</label>
+      <input type="number" id="soilMoisture" x-model="soilMoisture" min="0" max="1023" placeholder="0" />
+      <div class="hint">Rentang: 0 (kering) - 1023 (basah) &mdash; sensor analog</div>
+    </div>
+
+    <div class="form-group">
+      <label for="airTemp">Suhu Udara (&deg;C)</label>
+      <input type="number" id="airTemp" x-model="airTemp" step="0.1" placeholder="0" />
+    </div>
+
+    <div class="form-group">
+      <label for="airHumidity">Kelembapan Udara (%)</label>
+      <input type="number" id="airHumidity" x-model="airHumidity" min="0" max="100" placeholder="0" />
+      <div class="hint">Rentang: 0 - 100%</div>
+    </div>
+
+    <button class="btn-fuzzify" @click="fuzzify()" :disabled="fuzzifyLoading">
+      <span x-text="fuzzifyLoading ? 'Memproses...' : 'Fuzzify'"></span>
+    </button>
+
+    <template x-if="fuzzifyError">
+      <div class="error" style="margin-top:12px" x-text="fuzzifyError"></div>
+    </template>
+  </div>
+
+  <!-- Result -->
+  <template x-if="result">
+    <div class="result-card">
+      <h2>Hasil Analisis Fuzzy</h2>
+
+      <div class="result-duration">
+        <div class="duration-value" x-text="result.wateringDuration + ' detik'"></div>
+        <div class="duration-label" x-text="formatDuration(result.wateringDuration)"></div>
+      </div>
+
+      <div class="result-inputs">
+        <div class="result-input-item">
+          <div class="ri-label">Kelembapan Tanah</div>
+          <div class="ri-value" x-text="result.inputs.soilMoisture"></div>
+        </div>
+        <div class="result-input-item">
+          <div class="ri-label">Suhu Udara</div>
+          <div class="ri-value" x-text="result.inputs.airTemperature + '\u00B0C'"></div>
+        </div>
+        <div class="result-input-item">
+          <div class="ri-label">Kelembapan Udara</div>
+          <div class="ri-value" x-text="result.inputs.airHumidity + '%'"></div>
+        </div>
+        <div class="result-input-item">
+          <div class="ri-label">Curah Hujan (BMKG)</div>
+          <div class="ri-value" x-text="result.inputs.rainPrecipitation + ' mm'"></div>
+        </div>
+      </div>
+
+      <div class="membership-section">
+        <h3>Derajat Keanggotaan</h3>
+        <div class="membership-grid">
+          <template x-for="varItem in getMembershipDisplay()" :key="varItem.name">
+            <div class="membership-var">
+              <div class="mv-title" x-text="varItem.label"></div>
+              <template x-for="set in varItem.sets" :key="set.name">
+                <div class="membership-bar-row">
+                  <span class="mb-label" x-text="set.label"></span>
+                  <div class="mb-track">
+                    <div class="mb-fill" :style="'width:' + (set.value * 100) + '%; background:' + set.color"></div>
+                  </div>
+                  <span class="mb-value" x-text="set.value.toFixed(2)"></span>
+                </div>
+              </template>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <div class="rules-list" x-show="result.activeRules.length > 0">
+        <h3>Aturan Aktif</h3>
+        <template x-for="(rule, i) in result.activeRules" :key="i">
+          <div class="rule-item">
+            <span x-text="formatRule(rule)"></span>
+            <span class="rule-strength" x-text="rule.strength.toFixed(3)"></span>
+          </div>
+        </template>
+      </div>
+    </div>
+  </template>
+
+  <!-- Rain Probability -->
+  <div class="rain-card">
+    <h2>Probabilitas Hujan 3 Jam ke Depan</h2>
+
+    <template x-if="rainLoading">
+      <div class="loading">Memuat data hujan...</div>
+    </template>
+
+    <template x-if="rainError">
+      <div class="error" x-text="rainError"></div>
+    </template>
+
+    <template x-if="!rainLoading && !rainError && rainData.length === 0">
+      <div class="rain-empty">Tidak ada data prakiraan untuk 3 jam ke depan.</div>
+    </template>
+
+    <template x-if="!rainLoading && !rainError && rainData.length > 0">
+      <div class="rain-grid">
+        <template x-for="item in rainData" :key="item.datetime">
+          <div class="rain-item">
+            <div class="rain-time" x-text="formatTime(item.local_datetime)"></div>
+            <div class="rain-icon" x-text="getRainIcon(item.weather)"></div>
+            <div class="rain-desc" x-text="item.weather_desc"></div>
+            <div class="rain-detail">
+              <span x-text="'Curah hujan: ' + item.tp + ' mm'"></span>
+            </div>
+            <div class="rain-detail">
+              <span x-text="'Tutupan awan: ' + item.tcc + '%'"></span>
+            </div>
+          </div>
+        </template>
+      </div>
+    </template>
+  </div>
+
+</div>
+
+<script>
+  function fuzzyApp() {
+    return {
+      location: null,
+      soilMoisture: '',
+      airTemp: '',
+      airHumidity: '',
+      rainLoading: true,
+      rainError: null,
+      rainData: [],
+      fuzzifyLoading: false,
+      fuzzifyError: null,
+      result: null,
+
+      async init() {
+        await Promise.all([this.fetchLocation(), this.fetchRainData()]);
+      },
+
+      async fetchLocation() {
+        try {
+          const res = await fetch('/api/location');
+          if (res.ok) this.location = await res.json();
+        } catch (e) {
+          // non-critical, silently ignore
+        }
+      },
+
+      async fuzzify() {
+        if (this.soilMoisture === '' || this.airTemp === '' || this.airHumidity === '') {
+          this.fuzzifyError = 'Semua field harus diisi.';
+          return;
+        }
+        this.fuzzifyError = null;
+        this.fuzzifyLoading = true;
+        try {
+          const res = await fetch('/api/fuzzify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              soilMoisture: Number(this.soilMoisture),
+              airTemperature: Number(this.airTemp),
+              airHumidity: Number(this.airHumidity),
+            }),
+          });
+          if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Gagal memproses');
+          }
+          this.result = await res.json();
+        } catch (e) {
+          this.fuzzifyError = e.message || 'Gagal memproses fuzzy logic.';
+        } finally {
+          this.fuzzifyLoading = false;
+        }
+      },
+
+      async fetchRainData() {
+        try {
+          const res = await fetch('/api/rain-probability');
+          if (!res.ok) throw new Error('Gagal mengambil data');
+          this.rainData = await res.json();
+        } catch (e) {
+          this.rainError = 'Gagal memuat data prakiraan hujan.';
+        } finally {
+          this.rainLoading = false;
+        }
+      },
+
+      formatDuration(seconds) {
+        if (seconds === 0) return 'Tidak perlu penyiraman';
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        if (m === 0) return s + ' detik penyiraman';
+        if (s === 0) return m + ' menit penyiraman';
+        return m + ' menit ' + s + ' detik penyiraman';
+      },
+
+      getMembershipDisplay() {
+        if (!this.result) return [];
+        const m = this.result.memberships;
+        const vars = [
+          {
+            name: 'soilMoisture', label: 'Kelembapan Tanah',
+            sets: [
+              { name: 'dry', label: 'Kering', color: '#f97316' },
+              { name: 'moist', label: 'Lembap', color: '#22d3ee' },
+              { name: 'wet', label: 'Basah', color: '#3b82f6' },
+            ]
+          },
+          {
+            name: 'airTemperature', label: 'Suhu Udara',
+            sets: [
+              { name: 'cool', label: 'Sejuk', color: '#22d3ee' },
+              { name: 'warm', label: 'Hangat', color: '#facc15' },
+              { name: 'hot', label: 'Panas', color: '#ef4444' },
+            ]
+          },
+          {
+            name: 'airHumidity', label: 'Kelembapan Udara',
+            sets: [
+              { name: 'low', label: 'Rendah', color: '#f97316' },
+              { name: 'medium', label: 'Sedang', color: '#22d3ee' },
+              { name: 'high', label: 'Tinggi', color: '#3b82f6' },
+            ]
+          },
+          {
+            name: 'rainPrecipitation', label: 'Curah Hujan (BMKG)',
+            sets: [
+              { name: 'none', label: 'Tidak Ada', color: '#facc15' },
+              { name: 'light', label: 'Ringan', color: '#22d3ee' },
+              { name: 'heavy', label: 'Lebat', color: '#3b82f6' },
+            ]
+          },
+        ];
+        return vars.map(v => ({
+          ...v,
+          sets: v.sets.map(s => ({ ...s, value: m[v.name]?.[s.name] ?? 0 }))
+        }));
+      },
+
+      formatRule(rule) {
+        const labels = {
+          soilMoisture: 'Tanah', airTemperature: 'Suhu',
+          airHumidity: 'Kelembapan', rainPrecipitation: 'Hujan',
+        };
+        const setLabels = {
+          dry: 'Kering', moist: 'Lembap', wet: 'Basah',
+          cool: 'Sejuk', warm: 'Hangat', hot: 'Panas',
+          low: 'Rendah', medium: 'Sedang', high: 'Tinggi',
+          none: 'Tidak Ada', light: 'Ringan', heavy: 'Lebat',
+          zero: 'Nol', short: 'Pendek', long: 'Panjang', very_long: 'Sangat Panjang',
+        };
+        const parts = Object.entries(rule.conditions).map(
+          ([k, v]) => (labels[k] || k) + '=' + (setLabels[v] || v)
+        );
+        return parts.join(', ') + ' \u2192 ' + (setLabels[rule.output] || rule.output);
+      },
+
+      getRainIcon(code) {
+        const icons = {
+          0: '\u2600\uFE0F',
+          1: '\u26C5', 2: '\u26C5',
+          3: '\u2601\uFE0F', 4: '\u2601\uFE0F',
+          5: '\uD83C\uDF24',
+          10: '\uD83C\uDF26',
+          45: '\uD83C\uDF2B',
+          60: '\uD83C\uDF27', 61: '\uD83C\uDF27', 63: '\uD83C\uDF27',
+          80: '\u26C8',
+          95: '\u26A1', 97: '\u26A1',
+        };
+        return icons[code] || '\uD83C\uDF24';
+      },
+
+      formatTime(dt) {
+        return new Date(dt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+      }
+    };
+  }
+</script>

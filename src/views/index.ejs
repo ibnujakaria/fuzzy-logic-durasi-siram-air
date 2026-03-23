@@ -1,0 +1,199 @@
+<style>
+  header { text-align: center; margin-bottom: 32px; }
+  header h1 { font-size: 1.8rem; color: #38bdf8; }
+  header p { color: #94a3b8; margin-top: 4px; }
+  .location-card {
+    background: linear-gradient(135deg, #1e3a5f, #1e293b);
+    border-radius: 12px; padding: 20px; margin-bottom: 24px;
+    border: 1px solid #334155;
+  }
+  .location-card h2 { font-size: 1.1rem; color: #7dd3fc; margin-bottom: 8px; }
+  .location-detail { display: flex; flex-wrap: wrap; gap: 12px 24px; font-size: 0.9rem; color: #94a3b8; }
+  .current-weather {
+    background: linear-gradient(135deg, #0c4a6e, #164e63);
+    border-radius: 12px; padding: 24px; margin-bottom: 24px;
+    border: 1px solid #155e75; text-align: center;
+  }
+  .current-weather .temp { font-size: 3.5rem; font-weight: 700; color: #fff; }
+  .current-weather .desc { font-size: 1.2rem; color: #67e8f9; margin-top: 4px; }
+  .current-details {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px; margin-top: 20px;
+  }
+  .detail-item {
+    background: rgba(255,255,255,0.05); border-radius: 8px; padding: 12px; text-align: center;
+  }
+  .detail-item .label { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; }
+  .detail-item .value { font-size: 1.2rem; font-weight: 600; color: #e2e8f0; margin-top: 4px; }
+  .forecast-title { font-size: 1.2rem; color: #7dd3fc; margin-bottom: 16px; }
+  .forecast-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+  }
+  .forecast-card {
+    background: #1e293b; border: 1px solid #334155; border-radius: 10px;
+    padding: 16px; text-align: center; transition: transform 0.15s;
+  }
+  .forecast-card:hover { transform: translateY(-2px); border-color: #38bdf8; }
+  .forecast-card .time { font-size: 0.8rem; color: #94a3b8; }
+  .forecast-card .date { font-size: 0.75rem; color: #64748b; margin-top: 2px; }
+  .forecast-card .icon { font-size: 2rem; margin: 8px 0; }
+  .forecast-card .fc-temp { font-size: 1.4rem; font-weight: 700; }
+  .forecast-card .fc-desc { font-size: 0.8rem; color: #67e8f9; margin-top: 4px; }
+  .forecast-card .fc-detail { font-size: 0.75rem; color: #94a3b8; margin-top: 6px; }
+  .weather-icon { font-size: 3rem; }
+  @media (max-width: 600px) {
+    .current-weather .temp { font-size: 2.5rem; }
+    .forecast-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+  }
+</style>
+
+<div class="container" x-data="weatherApp()" x-init="fetchWeather()">
+
+  <header>
+    <a href="/" style="color:#94a3b8;text-decoration:none;font-size:0.85rem">&larr; Kembali ke Beranda</a>
+    <h1>Prakiraan Cuaca</h1>
+    <p>Sumber data: BMKG (Badan Meteorologi, Klimatologi, dan Geofisika)</p>
+  </header>
+
+  <!-- Loading -->
+  <template x-if="loading">
+    <div class="loading">Memuat data cuaca...</div>
+  </template>
+
+  <!-- Error -->
+  <template x-if="error">
+    <div class="error" x-text="error"></div>
+  </template>
+
+  <!-- Content -->
+  <template x-if="!loading && !error && location">
+    <div>
+      <!-- Location Info -->
+      <div class="location-card">
+        <h2 x-text="location.desa + ', ' + location.kecamatan"></h2>
+        <div class="location-detail">
+          <span x-text="'Kota/Kab: ' + location.kotkab"></span>
+          <span x-text="'Provinsi: ' + location.provinsi"></span>
+          <span x-text="'Koordinat: ' + location.lat + ', ' + location.lon"></span>
+        </div>
+      </div>
+
+      <!-- Current Weather -->
+      <template x-if="current">
+        <div class="current-weather">
+          <div class="weather-icon" x-text="getWeatherIcon(current.weather)"></div>
+          <div class="temp" x-text="current.t + '\u00B0C'"></div>
+          <div class="desc" x-text="current.weather_desc"></div>
+          <div class="current-details">
+            <div class="detail-item">
+              <div class="label">Kelembapan</div>
+              <div class="value" x-text="current.hu + '%'"></div>
+            </div>
+            <div class="detail-item">
+              <div class="label">Angin</div>
+              <div class="value" x-text="current.ws + ' m/s ' + current.wd"></div>
+            </div>
+            <div class="detail-item">
+              <div class="label">Tutupan Awan</div>
+              <div class="value" x-text="current.tcc + '%'"></div>
+            </div>
+            <div class="detail-item">
+              <div class="label">Curah Hujan</div>
+              <div class="value" x-text="current.tp + ' mm'"></div>
+            </div>
+            <div class="detail-item">
+              <div class="label">Jarak Pandang</div>
+              <div class="value" x-text="(current.vs / 1000).toFixed(1) + ' km'"></div>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- Forecast -->
+      <h3 class="forecast-title">Prakiraan Mendatang</h3>
+      <div class="forecast-grid">
+        <template x-for="item in forecast" :key="item.datetime">
+          <div class="forecast-card">
+            <div class="time" x-text="formatTime(item.local_datetime)"></div>
+            <div class="date" x-text="formatDate(item.local_datetime)"></div>
+            <div class="icon" x-text="getWeatherIcon(item.weather)"></div>
+            <div class="fc-temp" x-text="item.t + '\u00B0C'"></div>
+            <div class="fc-desc" x-text="item.weather_desc"></div>
+            <div class="fc-detail">
+              <span x-text="'Kelembapan ' + item.hu + '%'"></span><br/>
+              <span x-text="'Angin ' + item.ws + ' m/s ' + item.wd"></span>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+  </template>
+</div>
+
+<script>
+  function weatherApp() {
+    return {
+      loading: true,
+      error: null,
+      location: null,
+      current: null,
+      forecast: [],
+
+      async fetchWeather() {
+        try {
+          const res = await fetch('/api/weather');
+          if (!res.ok) throw new Error('Gagal mengambil data');
+          const json = await res.json();
+          const entry = json.data[0];
+          this.location = entry.lokasi;
+          const cuaca = entry.cuaca.flat();
+
+          const now = new Date();
+          let closest = cuaca[0];
+          let minDiff = Infinity;
+          for (const item of cuaca) {
+            const diff = Math.abs(new Date(item.local_datetime).getTime() - now.getTime());
+            if (diff < minDiff) { minDiff = diff; closest = item; }
+          }
+          this.current = closest;
+
+          const currentIdx = cuaca.indexOf(closest);
+          this.forecast = cuaca.slice(currentIdx + 1);
+        } catch (e) {
+          this.error = 'Gagal memuat data cuaca. Silakan coba lagi nanti.';
+        } finally {
+          this.loading = false;
+        }
+      },
+
+      getWeatherIcon(code) {
+        const icons = {
+          0: '\u2600\uFE0F',
+          1: '\u26C5',
+          2: '\u26C5',
+          3: '\u2601\uFE0F',
+          4: '\u2601\uFE0F',
+          5: '\uD83C\uDF24',
+          10: '\uD83C\uDF26',
+          45: '\uD83C\uDF2B',
+          60: '\uD83C\uDF27',
+          61: '\uD83C\uDF27',
+          63: '\uD83C\uDF27',
+          80: '\u26C8',
+          95: '\u26A1',
+          97: '\u26A1',
+        };
+        return icons[code] || '\uD83C\uDF24';
+      },
+
+      formatTime(dt) {
+        return new Date(dt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+      },
+
+      formatDate(dt) {
+        return new Date(dt).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' });
+      }
+    };
+  }
+</script>

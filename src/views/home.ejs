@@ -1,0 +1,44 @@
+<style>
+  .home-container {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; min-height: 80vh; gap: 24px;
+  }
+  .home-container h1 { font-size: 2rem; color: #38bdf8; }
+  .home-container p { color: #94a3b8; margin-top: -12px; }
+  .nav-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px; width: 100%; max-width: 600px; margin-top: 16px;
+  }
+  .nav-card {
+    background: linear-gradient(135deg, #1e3a5f, #1e293b);
+    border: 1px solid #334155; border-radius: 12px;
+    padding: 28px 24px; text-align: center;
+    text-decoration: none; color: #e2e8f0;
+    transition: transform 0.15s, border-color 0.15s;
+  }
+  .nav-card:hover { transform: translateY(-3px); border-color: #38bdf8; }
+  .nav-card .card-icon { font-size: 2.5rem; margin-bottom: 12px; }
+  .nav-card .card-title { font-size: 1.2rem; font-weight: 600; color: #7dd3fc; }
+  .nav-card .card-desc { font-size: 0.85rem; color: #94a3b8; margin-top: 8px; }
+</style>
+
+<div class="container">
+  <div class="home-container">
+    <h1>Sistem Monitoring Cuaca</h1>
+    <p>Pilih menu di bawah untuk memulai</p>
+
+    <div class="nav-grid">
+      <a href="/weather" class="nav-card">
+        <div class="card-icon">&#9925;</div>
+        <div class="card-title">Prakiraan Cuaca</div>
+        <div class="card-desc">Lihat prakiraan cuaca terkini dari BMKG untuk wilayah Anda</div>
+      </a>
+
+      <a href="/fuzzy" class="nav-card">
+        <div class="card-icon">&#9881;&#65039;</div>
+        <div class="card-title">Fuzzy Logic</div>
+        <div class="card-desc">Analisis kelembapan tanah, suhu, dan kelembapan udara</div>
+      </a>
+    </div>
+  </div>
+</div>
