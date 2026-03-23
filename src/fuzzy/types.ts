@@ -19,6 +19,7 @@ export interface FuzzyConfig {
 
 export interface FuzzifyResult {
   inputMemberships: Record<string, Record<string, number>>;
+  outputMemberships: Record<string, number>;
   ruleStrengths: Array<{ rule: FuzzyRule; strength: number }>;
   crispOutput: number;
 }

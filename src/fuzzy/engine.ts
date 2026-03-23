@@ -66,16 +66,34 @@ function defuzzify(
   return numerator / denominator;
 }
 
+function computeOutputMemberships(
+  config: FuzzyConfig,
+  ruleResults: Array<{ rule: FuzzyRule; strength: number }>
+): Record<string, number> {
+  const result: Record<string, number> = {};
+  for (const setName of Object.keys(config.output.sets)) {
+    result[setName] = 0;
+  }
+  for (const { rule, strength } of ruleResults) {
+    if (strength === 0) continue;
+    const current = result[rule.output] ?? 0;
+    result[rule.output] = Math.max(current, strength);
+  }
+  return result;
+}
+
 export function evaluate(
   config: FuzzyConfig,
   inputs: Record<string, number>
 ): FuzzifyResult {
   const inputMemberships = fuzzifyInputs(config, inputs);
   const ruleStrengths = evaluateRules(config.rules, inputMemberships);
+  const outputMemberships = computeOutputMemberships(config, ruleStrengths);
   const crispOutput = defuzzify(config, ruleStrengths);
 
   return {
     inputMemberships,
+    outputMemberships,
     ruleStrengths,
     crispOutput: Math.round(crispOutput),
   };

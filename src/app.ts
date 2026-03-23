@@ -121,6 +121,7 @@ app.post("/api/fuzzify", async (req, res) => {
         rainPrecipitation,
       },
       memberships: result.inputMemberships,
+      outputMemberships: result.outputMemberships,
       activeRules: result.ruleStrengths
         .filter((r) => r.strength > 0)
         .map((r) => ({

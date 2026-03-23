@@ -18,7 +18,7 @@ Crisp Inputs → Fuzzification → Rule Evaluation (AND=min) → Aggregation (MA
 |---|---|
 | `src/fuzzy/types.ts` | Core type definitions (`MembershipFn`, `LinguisticVariable`, `FuzzyRule`, `FuzzyConfig`, `FuzzifyResult`). Framework-agnostic. |
 | `src/fuzzy/membership.ts` | Membership function constructors: `triangular(a,b,c)` and `trapezoidal(a,b,c,d)`. Framework-agnostic. |
-| `src/fuzzy/engine.ts` | Inference engine: `evaluate(config, inputs) → FuzzifyResult`. Performs fuzzification, rule evaluation, and centroid defuzzification. Framework-agnostic. |
+| `src/fuzzy/engine.ts` | Inference engine: `evaluate(config, inputs) → FuzzifyResult`. Performs fuzzification, rule evaluation, output membership computation, and centroid defuzzification. Framework-agnostic. |
 | `src/fuzzy/watering-config.ts` | Application-specific configuration: defines all linguistic variables, membership function parameters, and the 24-rule rule base. Exports `wateringConfig: FuzzyConfig`. |
 | `src/services/bmkg.ts` | BMKG weather API service. Provides `fetchWeatherData(locationId)`, `getLocationInfo(data)`, `getRainProbabilityNext3Hours(data)`. |
 
@@ -223,7 +223,17 @@ strength = min(μ_condition_1, μ_condition_2, ..., μ_condition_n)
 
 Only conditions explicitly listed in the rule's `conditions` object are checked. Missing variables default to not constraining the rule.
 
-### 6.3 Aggregation (inside `defuzzify` in engine.ts)
+### 6.3 Output Membership Computation (`computeOutputMemberships` in engine.ts)
+
+For each output fuzzy set, the membership degree is the **maximum fire strength** across all rules that target that set:
+
+```
+μ_output_set = MAX over all rules i targeting that set: strength_i
+```
+
+This produces a `Record<string, number>` mapping each output set name to its activation degree. This is separate from defuzzification — it shows which output sets are "active" and how strongly, before the centroid calculation.
+
+### 6.4 Aggregation (inside `defuzzify` in engine.ts)
 
 For each point `y` in the output domain [0, 300], the aggregated membership is:
 
@@ -233,7 +243,7 @@ For each point `y` in the output domain [0, 300], the aggregated membership is:
 
 This is the standard Mamdani **clipping + MAX aggregation**.
 
-### 6.4 Defuzzification — Centroid (`defuzzify` in engine.ts)
+### 6.5 Defuzzification — Centroid (`defuzzify` in engine.ts)
 
 The crisp output is computed via the centroid (center of gravity) method:
 
@@ -257,25 +267,32 @@ y* = Σ(y × μ_agg(y)) / Σ(μ_agg(y))
 {
   "soilMoisture": 200,
   "airTemperature": 35,
-  "airHumidity": 30
+  "airHumidity": 30,
+  "rainPrecipitation": 0.5
 }
 ```
 
-Rain precipitation is **not** sent by the client. The server fetches it automatically from BMKG via `getRainProbabilityNext3Hours`, summing the `tp` (total precipitation) field across all forecast entries within the next 3 hours.
+`rainPrecipitation` is **optional**. If provided, the value is used directly (manual mode). If omitted, the server fetches it automatically from BMKG via `getRainProbabilityNext3Hours`, summing the `tp` (total precipitation) field across all forecast entries within the next 3 hours.
 
 **Response:**
 ```json
 {
-  "inputs": { "soilMoisture": 200, "airTemperature": 35, "airHumidity": 30, "rainPrecipitation": 0.1 },
+  "inputs": { "soilMoisture": 200, "airTemperature": 35, "airHumidity": 30, "rainPrecipitation": 0.5 },
   "memberships": { "soilMoisture": { "dry": 1, "moist": 0, "wet": 0 }, ... },
+  "outputMemberships": { "zero": 0, "short": 0, "medium": 0, "long": 0.25, "very_long": 0.25 },
   "activeRules": [{ "conditions": {...}, "output": "very_long", "strength": 0.667 }],
   "wateringDuration": 279
 }
 ```
 
+- `memberships`: input membership degrees per variable per fuzzy set
+- `outputMemberships`: max fire strength per output fuzzy set (shows which output sets are active before defuzzification)
+- `activeRules`: rules with strength > 0
+- `wateringDuration`: defuzzified crisp output in seconds
+
 ### BMKG Location
 
-The BMKG location ID is hardcoded as `LOCATION_ID = "35.78.13.1003"` in `src/server.ts`. The BMKG service functions (`src/services/bmkg.ts`) accept `locationId` as a parameter and are location-agnostic.
+The BMKG location ID is hardcoded as `LOCATION_ID = "35.78.13.1003"` in `src/app.ts`. The BMKG service functions (`src/services/bmkg.ts`) accept `locationId` as a parameter and are location-agnostic.
 
 ---
 

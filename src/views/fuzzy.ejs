@@ -265,7 +265,7 @@
       </div>
 
       <div class="membership-section">
-        <h3>Derajat Keanggotaan</h3>
+        <h3>Derajat Keanggotaan Input</h3>
         <div class="membership-grid">
           <template x-for="varItem in getMembershipDisplay()" :key="varItem.name">
             <div class="membership-var">
@@ -281,6 +281,23 @@
               </template>
             </div>
           </template>
+        </div>
+      </div>
+
+      <div class="membership-section">
+        <h3>Derajat Keanggotaan Output (Durasi Penyiraman)</h3>
+        <div class="membership-grid">
+          <div class="membership-var" style="grid-column: 1 / -1;">
+            <template x-for="set in getOutputMembershipDisplay()" :key="set.name">
+              <div class="membership-bar-row">
+                <span class="mb-label" x-text="set.label" style="min-width:100px"></span>
+                <div class="mb-track">
+                  <div class="mb-fill" :style="'width:' + (set.value * 100) + '%; background:' + set.color"></div>
+                </div>
+                <span class="mb-value" x-text="set.value.toFixed(3)"></span>
+              </div>
+            </template>
+          </div>
         </div>
       </div>
 
@@ -405,6 +422,19 @@
         if (m === 0) return s + ' detik penyiraman';
         if (s === 0) return m + ' menit penyiraman';
         return m + ' menit ' + s + ' detik penyiraman';
+      },
+
+      getOutputMembershipDisplay() {
+        if (!this.result || !this.result.outputMemberships) return [];
+        const m = this.result.outputMemberships;
+        const sets = [
+          { name: 'zero', label: 'Nol (0-20s)', color: '#94a3b8' },
+          { name: 'short', label: 'Pendek (10-110s)', color: '#22d3ee' },
+          { name: 'medium', label: 'Sedang (80-220s)', color: '#facc15' },
+          { name: 'long', label: 'Panjang (180-280s)', color: '#f97316' },
+          { name: 'very_long', label: 'Sangat Panjang (250-300s)', color: '#ef4444' },
+        ];
+        return sets.map(s => ({ ...s, value: m[s.name] ?? 0 }));
       },
 
       getMembershipDisplay() {
