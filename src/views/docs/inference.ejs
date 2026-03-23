@@ -1,0 +1,45 @@
+<div class="section">
+  <div class="section-header" @click="open['inference'] = !open['inference']">
+    <h2>6. Proses Inferensi</h2>
+    <span class="section-arrow" :style="open['inference'] ? 'transform:rotate(90deg)' : ''">&#9654;</span>
+  </div>
+  <div class="section-body" x-show="open['inference']" x-collapse>
+
+    <div class="subsection">
+      <h3>6.1 Fuzzifikasi</h3>
+      <p>Setiap nilai input crisp dihitung derajat keanggotaannya terhadap semua himpunan fuzzy pada variabel tersebut.</p>
+      <div class="formula">
+        Input: kelembapan tanah = 350<br>
+        &rarr; &mu;_kering(350) = (400 - 350) / (400 - 200) = 0.25<br>
+        &rarr; &mu;_lembap(350) = (350 - 300) / (500 - 300) = 0.25<br>
+        &rarr; &mu;_basah(350) = 0
+      </div>
+    </div>
+
+    <div class="subsection">
+      <h3>6.2 Evaluasi Aturan</h3>
+      <p>Setiap aturan dievaluasi menggunakan operator AND (minimum) untuk mendapatkan <em>fire strength</em>.</p>
+      <div class="formula">
+        IF tanah=Kering AND suhu=Panas AND kelembapan=Rendah AND hujan=Tidak Ada<br>
+        strength = min(&mu;_kering, &mu;_panas, &mu;_rendah, &mu;_tidak_ada)
+      </div>
+    </div>
+
+    <div class="subsection">
+      <h3>6.3 Agregasi</h3>
+      <p>Hasil semua aturan digabungkan menggunakan operator MAX. Untuk setiap titik pada domain output, nilai agregasi adalah nilai maksimum dari semua aturan yang di-clip.</p>
+      <div class="formula">
+        &mu;_agregasi(y) = MAX[ min(strength_i, &mu;_output_i(y)) ] untuk semua aturan i
+      </div>
+    </div>
+
+    <div class="subsection">
+      <h3>6.4 Defuzzifikasi (Centroid)</h3>
+      <p>Himpunan fuzzy hasil agregasi diubah menjadi nilai crisp menggunakan metode centroid (pusat gravitasi).</p>
+      <div class="formula">
+        y* = &Sigma;(y &times; &mu;_agregasi(y)) / &Sigma;(&mu;_agregasi(y))
+      </div>
+      <p>Resolusi perhitungan: 200 titik pada rentang output [0, 300]. Hasil akhir dibulatkan ke bilangan bulat.</p>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,20 @@
+<div class="section">
+  <div class="section-header" @click="toggle('output')">
+    <h2>3. Variabel Output</h2>
+    <span class="section-arrow" :style="open['output'] ? 'transform:rotate(90deg)' : ''">&#9654;</span>
+  </div>
+  <div class="section-body" x-show="open['output']" x-collapse>
+    <p>Output sistem adalah <strong>durasi penyiraman</strong> dalam satuan detik (0 &ndash; 300 detik / 0 &ndash; 5 menit).</p>
+    <div class="table-wrap"><table class="data-table">
+      <thead><tr><th>Himpunan</th><th>Tipe</th><th>Parameter</th><th>Rentang Penuh</th></tr></thead>
+      <tbody>
+        <tr><td>Nol (<em>zero</em>)</td><td>Trapezoidal</td><td>(0, 0, 0, 20)</td><td>0 &ndash; 20</td></tr>
+        <tr><td>Pendek (<em>short</em>)</td><td>Triangular</td><td>(10, 60, 110)</td><td>10 &ndash; 110</td></tr>
+        <tr><td>Sedang (<em>medium</em>)</td><td>Triangular</td><td>(80, 150, 220)</td><td>80 &ndash; 220</td></tr>
+        <tr><td>Panjang (<em>long</em>)</td><td>Triangular</td><td>(180, 240, 280)</td><td>180 &ndash; 280</td></tr>
+        <tr><td>Sangat Panjang (<em>very_long</em>)</td><td>Trapezoidal</td><td>(250, 280, 300, 300)</td><td>250 &ndash; 300</td></tr>
+      </tbody>
+    </table></div>
+    <div class="chart-container"><div id="chart-output"></div></div>
+  </div>
+</div>

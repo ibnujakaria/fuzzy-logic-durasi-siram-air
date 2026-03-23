@@ -1,3 +1,5 @@
+<%- include('docs/charts') %>
+
 <style>
   header { text-align: center; margin-bottom: 32px; }
   header h1 { font-size: 1.8rem; color: #38bdf8; }
@@ -21,8 +23,9 @@
   .section-body p { color: #cbd5e1; font-size: 0.9rem; line-height: 1.7; margin-bottom: 12px; }
   .section-body ul { color: #cbd5e1; font-size: 0.9rem; line-height: 1.7; padding-left: 20px; margin-bottom: 12px; }
   .section-body li { margin-bottom: 4px; }
+  .table-wrap { overflow-x: auto; margin: 12px 0; -webkit-overflow-scrolling: touch; }
   .data-table {
-    width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.85rem;
+    width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 400px;
   }
   .data-table th {
     text-align: left; padding: 10px 12px; background: rgba(255,255,255,0.05);
@@ -44,9 +47,13 @@
     padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 12px 0;
     font-size: 0.85rem; color: #94a3b8;
   }
+  .chart-container {
+    background: #0f172a; border: 1px solid #334155; border-radius: 8px;
+    padding: 8px 4px; margin: 16px 0;
+  }
 </style>
 
-<div class="container" x-data="{ open: {} }">
+<div class="container" x-data="docsApp()">
 
   <header>
     <a href="/" class="back-link">&larr; Kembali ke Beranda</a>
@@ -54,322 +61,12 @@
     <p>Penjelasan lengkap sistem inferensi fuzzy untuk penyiraman tanaman</p>
   </header>
 
-  <!-- 1. Gambaran Umum -->
-  <div class="section">
-    <div class="section-header" @click="open['overview'] = !open['overview']">
-      <h2>1. Gambaran Umum</h2>
-      <span class="section-arrow" :style="open['overview'] ? 'transform:rotate(90deg)' : ''">&#9654;</span>
-    </div>
-    <div class="section-body" x-show="open['overview']" x-collapse>
-      <p>
-        Sistem ini menggunakan <strong>Fuzzy Logic metode Mamdani</strong> untuk menentukan
-        durasi penyiraman tanaman secara otomatis. Keputusan didasarkan pada 4 variabel input
-        dan menghasilkan 1 variabel output.
-      </p>
-      <p>Alur proses inferensi fuzzy:</p>
-      <ul>
-        <li><strong>Fuzzifikasi</strong> &mdash; mengubah nilai crisp (tegas) menjadi derajat keanggotaan fuzzy</li>
-        <li><strong>Evaluasi Aturan</strong> &mdash; mengevaluasi seluruh aturan IF-THEN menggunakan operator AND (minimum)</li>
-        <li><strong>Agregasi</strong> &mdash; menggabungkan hasil semua aturan menggunakan operator MAX</li>
-        <li><strong>Defuzzifikasi</strong> &mdash; mengubah himpunan fuzzy output menjadi nilai crisp menggunakan metode Centroid</li>
-      </ul>
-    </div>
-  </div>
-
-  <!-- 2. Variabel Input -->
-  <div class="section">
-    <div class="section-header" @click="open['inputs'] = !open['inputs']">
-      <h2>2. Variabel Input</h2>
-      <span class="section-arrow" :style="open['inputs'] ? 'transform:rotate(90deg)' : ''">&#9654;</span>
-    </div>
-    <div class="section-body" x-show="open['inputs']" x-collapse>
-      <p>Sistem menerima 4 variabel input. Tiga dari sensor dan satu dari API BMKG.</p>
-
-      <div class="subsection">
-        <h3>2.1 Kelembapan Tanah (0 &ndash; 1023)</h3>
-        <p>Nilai analog dari sensor kelembapan tanah. Semakin tinggi nilainya, semakin basah tanahnya.</p>
-        <table class="data-table">
-          <thead><tr><th>Himpunan</th><th>Tipe</th><th>Parameter</th><th>Rentang Penuh</th></tr></thead>
-          <tbody>
-            <tr><td>Kering (<em>dry</em>)</td><td>Trapezoidal</td><td>(0, 0, 200, 400)</td><td>0 &ndash; 400</td></tr>
-            <tr><td>Lembap (<em>moist</em>)</td><td>Triangular</td><td>(300, 500, 700)</td><td>300 &ndash; 700</td></tr>
-            <tr><td>Basah (<em>wet</em>)</td><td>Trapezoidal</td><td>(600, 800, 1023, 1023)</td><td>600 &ndash; 1023</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="subsection">
-        <h3>2.2 Suhu Udara (&deg;C)</h3>
-        <table class="data-table">
-          <thead><tr><th>Himpunan</th><th>Tipe</th><th>Parameter</th><th>Rentang Penuh</th></tr></thead>
-          <tbody>
-            <tr><td>Sejuk (<em>cool</em>)</td><td>Trapezoidal</td><td>(0, 0, 18, 25)</td><td>0 &ndash; 25</td></tr>
-            <tr><td>Hangat (<em>warm</em>)</td><td>Triangular</td><td>(22, 28, 34)</td><td>22 &ndash; 34</td></tr>
-            <tr><td>Panas (<em>hot</em>)</td><td>Trapezoidal</td><td>(32, 38, 50, 50)</td><td>32 &ndash; 50</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="subsection">
-        <h3>2.3 Kelembapan Udara (0 &ndash; 100%)</h3>
-        <table class="data-table">
-          <thead><tr><th>Himpunan</th><th>Tipe</th><th>Parameter</th><th>Rentang Penuh</th></tr></thead>
-          <tbody>
-            <tr><td>Rendah (<em>low</em>)</td><td>Trapezoidal</td><td>(0, 0, 25, 45)</td><td>0 &ndash; 45</td></tr>
-            <tr><td>Sedang (<em>medium</em>)</td><td>Triangular</td><td>(35, 55, 75)</td><td>35 &ndash; 75</td></tr>
-            <tr><td>Tinggi (<em>high</em>)</td><td>Trapezoidal</td><td>(65, 80, 100, 100)</td><td>65 &ndash; 100</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="subsection">
-        <h3>2.4 Curah Hujan / Presipitasi (mm)</h3>
-        <p>Total presipitasi dalam 3 jam ke depan, diambil otomatis dari API BMKG.</p>
-        <table class="data-table">
-          <thead><tr><th>Himpunan</th><th>Tipe</th><th>Parameter</th><th>Rentang Penuh</th></tr></thead>
-          <tbody>
-            <tr><td>Tidak Ada (<em>none</em>)</td><td>Trapezoidal</td><td>(0, 0, 0.1, 0.5)</td><td>0 &ndash; 0.5</td></tr>
-            <tr><td>Ringan (<em>light</em>)</td><td>Triangular</td><td>(0.3, 1.5, 4)</td><td>0.3 &ndash; 4</td></tr>
-            <tr><td>Lebat (<em>heavy</em>)</td><td>Trapezoidal</td><td>(3, 6, 50, 50)</td><td>3 &ndash; 50</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- 3. Variabel Output -->
-  <div class="section">
-    <div class="section-header" @click="open['output'] = !open['output']">
-      <h2>3. Variabel Output</h2>
-      <span class="section-arrow" :style="open['output'] ? 'transform:rotate(90deg)' : ''">&#9654;</span>
-    </div>
-    <div class="section-body" x-show="open['output']" x-collapse>
-      <p>Output sistem adalah <strong>durasi penyiraman</strong> dalam satuan detik (0 &ndash; 300 detik / 0 &ndash; 5 menit).</p>
-      <table class="data-table">
-        <thead><tr><th>Himpunan</th><th>Tipe</th><th>Parameter</th><th>Rentang Penuh</th></tr></thead>
-        <tbody>
-          <tr><td>Nol (<em>zero</em>)</td><td>Trapezoidal</td><td>(0, 0, 0, 20)</td><td>0 &ndash; 20</td></tr>
-          <tr><td>Pendek (<em>short</em>)</td><td>Triangular</td><td>(10, 60, 110)</td><td>10 &ndash; 110</td></tr>
-          <tr><td>Sedang (<em>medium</em>)</td><td>Triangular</td><td>(80, 150, 220)</td><td>80 &ndash; 220</td></tr>
-          <tr><td>Panjang (<em>long</em>)</td><td>Triangular</td><td>(180, 240, 280)</td><td>180 &ndash; 280</td></tr>
-          <tr><td>Sangat Panjang (<em>very_long</em>)</td><td>Trapezoidal</td><td>(250, 280, 300, 300)</td><td>250 &ndash; 300</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- 4. Fungsi Keanggotaan -->
-  <div class="section">
-    <div class="section-header" @click="open['membership'] = !open['membership']">
-      <h2>4. Fungsi Keanggotaan</h2>
-      <span class="section-arrow" :style="open['membership'] ? 'transform:rotate(90deg)' : ''">&#9654;</span>
-    </div>
-    <div class="section-body" x-show="open['membership']" x-collapse>
-      <p>Sistem menggunakan dua jenis fungsi keanggotaan:</p>
-
-      <div class="subsection">
-        <h3>Triangular (a, b, c)</h3>
-        <p>Membentuk segitiga dengan puncak di titik <em>b</em>. Nilai keanggotaan = 0 di luar rentang [a, c] dan = 1 di titik b.</p>
-        <div class="formula">
-          &mu;(x) = 0 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; jika x &le; a atau x &ge; c<br>
-          &mu;(x) = (x - a) / (b - a) &nbsp; jika a &lt; x &le; b<br>
-          &mu;(x) = (c - x) / (c - b) &nbsp; jika b &lt; x &lt; c
-        </div>
-      </div>
-
-      <div class="subsection">
-        <h3>Trapezoidal (a, b, c, d)</h3>
-        <p>Membentuk trapesium. Nilai keanggotaan = 1 pada rentang [b, c] dan = 0 di luar [a, d].</p>
-        <div class="formula">
-          &mu;(x) = 0 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; jika x &le; a atau x &ge; d<br>
-          &mu;(x) = (x - a) / (b - a) &nbsp; jika a &lt; x &lt; b<br>
-          &mu;(x) = 1 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; jika b &le; x &le; c<br>
-          &mu;(x) = (d - x) / (d - c) &nbsp; jika c &lt; x &lt; d
-        </div>
-      </div>
-
-      <div class="note">
-        Ketika parameter batas bertemu (misal a = b pada trapezoidal), kurva menjadi "terbuka" di sisi tersebut &mdash; berguna untuk himpunan di ujung rentang seperti "Kering" atau "Basah".
-      </div>
-    </div>
-  </div>
-
-  <!-- 5. Basis Aturan -->
-  <div class="section">
-    <div class="section-header" @click="open['rules'] = !open['rules']">
-      <h2>5. Basis Aturan (24 Aturan)</h2>
-      <span class="section-arrow" :style="open['rules'] ? 'transform:rotate(90deg)' : ''">&#9654;</span>
-    </div>
-    <div class="section-body" x-show="open['rules']" x-collapse>
-      <p>Aturan menggunakan format <strong>IF ... AND ... THEN ...</strong>. Operator AND menggunakan fungsi minimum.</p>
-
-      <div class="subsection">
-        <h3>Tanah Kering &mdash; Tanpa Hujan (9 aturan)</h3>
-        <table class="data-table">
-          <thead><tr><th>#</th><th>Suhu</th><th>Kelembapan Udara</th><th>Durasi Siram</th></tr></thead>
-          <tbody>
-            <tr><td>1</td><td>Panas</td><td>Rendah</td><td>Sangat Panjang</td></tr>
-            <tr><td>2</td><td>Panas</td><td>Sedang</td><td>Sangat Panjang</td></tr>
-            <tr><td>3</td><td>Panas</td><td>Tinggi</td><td>Panjang</td></tr>
-            <tr><td>4</td><td>Hangat</td><td>Rendah</td><td>Sangat Panjang</td></tr>
-            <tr><td>5</td><td>Hangat</td><td>Sedang</td><td>Panjang</td></tr>
-            <tr><td>6</td><td>Hangat</td><td>Tinggi</td><td>Sedang</td></tr>
-            <tr><td>7</td><td>Sejuk</td><td>Rendah</td><td>Panjang</td></tr>
-            <tr><td>8</td><td>Sejuk</td><td>Sedang</td><td>Sedang</td></tr>
-            <tr><td>9</td><td>Sejuk</td><td>Tinggi</td><td>Pendek</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="subsection">
-        <h3>Tanah Kering &mdash; Hujan Ringan (3 aturan)</h3>
-        <table class="data-table">
-          <thead><tr><th>#</th><th>Suhu</th><th>Durasi Siram</th></tr></thead>
-          <tbody>
-            <tr><td>10</td><td>Panas</td><td>Panjang</td></tr>
-            <tr><td>11</td><td>Hangat</td><td>Sedang</td></tr>
-            <tr><td>12</td><td>Sejuk</td><td>Pendek</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="subsection">
-        <h3>Tanah Kering &mdash; Hujan Lebat (1 aturan)</h3>
-        <table class="data-table">
-          <thead><tr><th>#</th><th>Durasi Siram</th></tr></thead>
-          <tbody>
-            <tr><td>13</td><td>Pendek</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="subsection">
-        <h3>Tanah Lembap &mdash; Tanpa Hujan (7 aturan)</h3>
-        <table class="data-table">
-          <thead><tr><th>#</th><th>Suhu</th><th>Kelembapan Udara</th><th>Durasi Siram</th></tr></thead>
-          <tbody>
-            <tr><td>14</td><td>Panas</td><td>Rendah</td><td>Panjang</td></tr>
-            <tr><td>15</td><td>Panas</td><td>Sedang</td><td>Sedang</td></tr>
-            <tr><td>16</td><td>Panas</td><td>Tinggi</td><td>Pendek</td></tr>
-            <tr><td>17</td><td>Hangat</td><td>Rendah</td><td>Sedang</td></tr>
-            <tr><td>18</td><td>Hangat</td><td>Sedang</td><td>Pendek</td></tr>
-            <tr><td>19</td><td>Hangat</td><td>Tinggi</td><td>Nol</td></tr>
-            <tr><td>20</td><td>Sejuk</td><td>Semua</td><td>Nol</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="subsection">
-        <h3>Tanah Lembap &mdash; Ada Hujan (2 aturan)</h3>
-        <table class="data-table">
-          <thead><tr><th>#</th><th>Hujan</th><th>Durasi Siram</th></tr></thead>
-          <tbody>
-            <tr><td>21</td><td>Ringan</td><td>Nol</td></tr>
-            <tr><td>22</td><td>Lebat</td><td>Nol</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="subsection">
-        <h3>Tanah Basah (1 aturan)</h3>
-        <table class="data-table">
-          <thead><tr><th>#</th><th>Durasi Siram</th></tr></thead>
-          <tbody>
-            <tr><td>23</td><td>Nol</td></tr>
-          </tbody>
-        </table>
-        <div class="note">Jika tanah sudah basah, penyiraman tidak dilakukan apapun kondisi lainnya.</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 6. Proses Inferensi -->
-  <div class="section">
-    <div class="section-header" @click="open['inference'] = !open['inference']">
-      <h2>6. Proses Inferensi</h2>
-      <span class="section-arrow" :style="open['inference'] ? 'transform:rotate(90deg)' : ''">&#9654;</span>
-    </div>
-    <div class="section-body" x-show="open['inference']" x-collapse>
-
-      <div class="subsection">
-        <h3>6.1 Fuzzifikasi</h3>
-        <p>Setiap nilai input crisp dihitung derajat keanggotaannya terhadap semua himpunan fuzzy pada variabel tersebut.</p>
-        <div class="formula">
-          Input: kelembapan tanah = 350<br>
-          &rarr; &mu;_kering(350) = (400 - 350) / (400 - 200) = 0.25<br>
-          &rarr; &mu;_lembap(350) = (350 - 300) / (500 - 300) = 0.25<br>
-          &rarr; &mu;_basah(350) = 0
-        </div>
-      </div>
-
-      <div class="subsection">
-        <h3>6.2 Evaluasi Aturan</h3>
-        <p>Setiap aturan dievaluasi menggunakan operator AND (minimum) untuk mendapatkan <em>fire strength</em>.</p>
-        <div class="formula">
-          IF tanah=Kering AND suhu=Panas AND kelembapan=Rendah AND hujan=Tidak Ada<br>
-          strength = min(&mu;_kering, &mu;_panas, &mu;_rendah, &mu;_tidak_ada)
-        </div>
-      </div>
-
-      <div class="subsection">
-        <h3>6.3 Agregasi</h3>
-        <p>Hasil semua aturan digabungkan menggunakan operator MAX. Untuk setiap titik pada domain output, nilai agregasi adalah nilai maksimum dari semua aturan yang di-clip.</p>
-        <div class="formula">
-          &mu;_agregasi(y) = MAX[ min(strength_i, &mu;_output_i(y)) ] untuk semua aturan i
-        </div>
-      </div>
-
-      <div class="subsection">
-        <h3>6.4 Defuzzifikasi (Centroid)</h3>
-        <p>Himpunan fuzzy hasil agregasi diubah menjadi nilai crisp menggunakan metode centroid (pusat gravitasi).</p>
-        <div class="formula">
-          y* = &Sigma;(y &times; &mu;_agregasi(y)) / &Sigma;(&mu;_agregasi(y))
-        </div>
-        <p>Resolusi perhitungan: 200 titik pada rentang output [0, 300]. Hasil akhir dibulatkan ke bilangan bulat.</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- 7. Contoh Perhitungan -->
-  <div class="section">
-    <div class="section-header" @click="open['example'] = !open['example']">
-      <h2>7. Contoh Perhitungan</h2>
-      <span class="section-arrow" :style="open['example'] ? 'transform:rotate(90deg)' : ''">&#9654;</span>
-    </div>
-    <div class="section-body" x-show="open['example']" x-collapse>
-      <p><strong>Skenario:</strong> Tanah kering (100), suhu panas (36&deg;C), kelembapan udara rendah (20%), tanpa hujan (0.1 mm)</p>
-
-      <div class="subsection">
-        <h3>Langkah 1: Fuzzifikasi</h3>
-        <table class="data-table">
-          <thead><tr><th>Variabel</th><th>Nilai</th><th>Himpunan</th><th>Derajat</th></tr></thead>
-          <tbody>
-            <tr><td>Kelembapan Tanah</td><td>100</td><td>Kering</td><td>1.00</td></tr>
-            <tr><td>Suhu Udara</td><td>36&deg;C</td><td>Panas</td><td>0.67</td></tr>
-            <tr><td>Kelembapan Udara</td><td>20%</td><td>Rendah</td><td>1.00</td></tr>
-            <tr><td>Curah Hujan</td><td>0.1 mm</td><td>Tidak Ada</td><td>1.00</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="subsection">
-        <h3>Langkah 2: Evaluasi Aturan</h3>
-        <p>Aturan #1 aktif: IF Kering AND Panas AND Rendah AND Tidak Ada THEN Sangat Panjang</p>
-        <div class="formula">
-          strength = min(1.00, 0.67, 1.00, 1.00) = 0.667
-        </div>
-      </div>
-
-      <div class="subsection">
-        <h3>Langkah 3: Defuzzifikasi</h3>
-        <p>Himpunan output "Sangat Panjang" di-clip pada 0.667, lalu dihitung centroid-nya.</p>
-        <div class="formula">Hasil: 279 detik (&asymp; 4 menit 39 detik)</div>
-      </div>
-
-      <div class="note">
-        Coba sendiri di halaman <a href="/fuzzy" style="color:#38bdf8">Fuzzy Logic</a> dengan memasukkan nilai-nilai di atas.
-      </div>
-    </div>
-  </div>
+  <%- include('docs/overview') %>
+  <%- include('docs/inputs') %>
+  <%- include('docs/output') %>
+  <%- include('docs/membership') %>
+  <%- include('docs/rules') %>
+  <%- include('docs/inference') %>
+  <%- include('docs/example') %>
 
 </div>

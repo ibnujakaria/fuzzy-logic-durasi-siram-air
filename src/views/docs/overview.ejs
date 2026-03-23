@@ -1,0 +1,20 @@
+<div class="section">
+  <div class="section-header" @click="open['overview'] = !open['overview']">
+    <h2>1. Gambaran Umum</h2>
+    <span class="section-arrow" :style="open['overview'] ? 'transform:rotate(90deg)' : ''">&#9654;</span>
+  </div>
+  <div class="section-body" x-show="open['overview']" x-collapse>
+    <p>
+      Sistem ini menggunakan <strong>Fuzzy Logic metode Mamdani</strong> untuk menentukan
+      durasi penyiraman tanaman secara otomatis. Keputusan didasarkan pada 4 variabel input
+      dan menghasilkan 1 variabel output.
+    </p>
+    <p>Alur proses inferensi fuzzy:</p>
+    <ul>
+      <li><strong>Fuzzifikasi</strong> &mdash; mengubah nilai crisp (tegas) menjadi derajat keanggotaan fuzzy</li>
+      <li><strong>Evaluasi Aturan</strong> &mdash; mengevaluasi seluruh aturan IF-THEN menggunakan operator AND (minimum)</li>
+      <li><strong>Agregasi</strong> &mdash; menggabungkan hasil semua aturan menggunakan operator MAX</li>
+      <li><strong>Defuzzifikasi</strong> &mdash; mengubah himpunan fuzzy output menjadi nilai crisp menggunakan metode Centroid</li>
+    </ul>
+  </div>
+</div>

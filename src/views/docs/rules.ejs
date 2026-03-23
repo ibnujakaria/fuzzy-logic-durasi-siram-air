@@ -1,0 +1,87 @@
+<div class="section">
+  <div class="section-header" @click="open['rules'] = !open['rules']">
+    <h2>5. Basis Aturan (24 Aturan)</h2>
+    <span class="section-arrow" :style="open['rules'] ? 'transform:rotate(90deg)' : ''">&#9654;</span>
+  </div>
+  <div class="section-body" x-show="open['rules']" x-collapse>
+    <p>Aturan menggunakan format <strong>IF ... AND ... THEN ...</strong>. Operator AND menggunakan fungsi minimum.</p>
+
+    <div class="subsection">
+      <h3>Tanah Kering &mdash; Tanpa Hujan (9 aturan)</h3>
+      <div class="table-wrap"><table class="data-table">
+        <thead><tr><th>#</th><th>Suhu</th><th>Kelembapan Udara</th><th>Durasi Siram</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Panas</td><td>Rendah</td><td>Sangat Panjang</td></tr>
+          <tr><td>2</td><td>Panas</td><td>Sedang</td><td>Sangat Panjang</td></tr>
+          <tr><td>3</td><td>Panas</td><td>Tinggi</td><td>Panjang</td></tr>
+          <tr><td>4</td><td>Hangat</td><td>Rendah</td><td>Sangat Panjang</td></tr>
+          <tr><td>5</td><td>Hangat</td><td>Sedang</td><td>Panjang</td></tr>
+          <tr><td>6</td><td>Hangat</td><td>Tinggi</td><td>Sedang</td></tr>
+          <tr><td>7</td><td>Sejuk</td><td>Rendah</td><td>Panjang</td></tr>
+          <tr><td>8</td><td>Sejuk</td><td>Sedang</td><td>Sedang</td></tr>
+          <tr><td>9</td><td>Sejuk</td><td>Tinggi</td><td>Pendek</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <div class="subsection">
+      <h3>Tanah Kering &mdash; Hujan Ringan (3 aturan)</h3>
+      <div class="table-wrap"><table class="data-table">
+        <thead><tr><th>#</th><th>Suhu</th><th>Durasi Siram</th></tr></thead>
+        <tbody>
+          <tr><td>10</td><td>Panas</td><td>Panjang</td></tr>
+          <tr><td>11</td><td>Hangat</td><td>Sedang</td></tr>
+          <tr><td>12</td><td>Sejuk</td><td>Pendek</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <div class="subsection">
+      <h3>Tanah Kering &mdash; Hujan Lebat (1 aturan)</h3>
+      <div class="table-wrap"><table class="data-table">
+        <thead><tr><th>#</th><th>Durasi Siram</th></tr></thead>
+        <tbody>
+          <tr><td>13</td><td>Pendek</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <div class="subsection">
+      <h3>Tanah Lembap &mdash; Tanpa Hujan (7 aturan)</h3>
+      <div class="table-wrap"><table class="data-table">
+        <thead><tr><th>#</th><th>Suhu</th><th>Kelembapan Udara</th><th>Durasi Siram</th></tr></thead>
+        <tbody>
+          <tr><td>14</td><td>Panas</td><td>Rendah</td><td>Panjang</td></tr>
+          <tr><td>15</td><td>Panas</td><td>Sedang</td><td>Sedang</td></tr>
+          <tr><td>16</td><td>Panas</td><td>Tinggi</td><td>Pendek</td></tr>
+          <tr><td>17</td><td>Hangat</td><td>Rendah</td><td>Sedang</td></tr>
+          <tr><td>18</td><td>Hangat</td><td>Sedang</td><td>Pendek</td></tr>
+          <tr><td>19</td><td>Hangat</td><td>Tinggi</td><td>Nol</td></tr>
+          <tr><td>20</td><td>Sejuk</td><td>Semua</td><td>Nol</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <div class="subsection">
+      <h3>Tanah Lembap &mdash; Ada Hujan (2 aturan)</h3>
+      <div class="table-wrap"><table class="data-table">
+        <thead><tr><th>#</th><th>Hujan</th><th>Durasi Siram</th></tr></thead>
+        <tbody>
+          <tr><td>21</td><td>Ringan</td><td>Nol</td></tr>
+          <tr><td>22</td><td>Lebat</td><td>Nol</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <div class="subsection">
+      <h3>Tanah Basah (1 aturan)</h3>
+      <div class="table-wrap"><table class="data-table">
+        <thead><tr><th>#</th><th>Durasi Siram</th></tr></thead>
+        <tbody>
+          <tr><td>23</td><td>Nol</td></tr>
+        </tbody>
+      </table></div>
+      <div class="note">Jika tanah sudah basah, penyiraman tidak dilakukan apapun kondisi lainnya.</div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,63 @@
+<div class="section">
+  <div class="section-header" @click="toggle('inputs')">
+    <h2>2. Variabel Input</h2>
+    <span class="section-arrow" :style="open['inputs'] ? 'transform:rotate(90deg)' : ''">&#9654;</span>
+  </div>
+  <div class="section-body" x-show="open['inputs']" x-collapse>
+    <p>Sistem menerima 4 variabel input. Tiga dari sensor dan satu dari API BMKG.</p>
+
+    <div class="subsection">
+      <h3>2.1 Kelembapan Tanah (0 &ndash; 1023)</h3>
+      <p>Nilai analog dari sensor kelembapan tanah. Semakin tinggi nilainya, semakin basah tanahnya.</p>
+      <div class="table-wrap"><table class="data-table">
+        <thead><tr><th>Himpunan</th><th>Tipe</th><th>Parameter</th><th>Rentang Penuh</th></tr></thead>
+        <tbody>
+          <tr><td>Kering (<em>dry</em>)</td><td>Trapezoidal</td><td>(0, 0, 200, 400)</td><td>0 &ndash; 400</td></tr>
+          <tr><td>Lembap (<em>moist</em>)</td><td>Triangular</td><td>(300, 500, 700)</td><td>300 &ndash; 700</td></tr>
+          <tr><td>Basah (<em>wet</em>)</td><td>Trapezoidal</td><td>(600, 800, 1023, 1023)</td><td>600 &ndash; 1023</td></tr>
+        </tbody>
+      </table></div>
+      <div class="chart-container"><div id="chart-soil"></div></div>
+    </div>
+
+    <div class="subsection">
+      <h3>2.2 Suhu Udara (&deg;C)</h3>
+      <div class="table-wrap"><table class="data-table">
+        <thead><tr><th>Himpunan</th><th>Tipe</th><th>Parameter</th><th>Rentang Penuh</th></tr></thead>
+        <tbody>
+          <tr><td>Sejuk (<em>cool</em>)</td><td>Trapezoidal</td><td>(0, 0, 18, 25)</td><td>0 &ndash; 25</td></tr>
+          <tr><td>Hangat (<em>warm</em>)</td><td>Triangular</td><td>(22, 28, 34)</td><td>22 &ndash; 34</td></tr>
+          <tr><td>Panas (<em>hot</em>)</td><td>Trapezoidal</td><td>(32, 38, 50, 50)</td><td>32 &ndash; 50</td></tr>
+        </tbody>
+      </table></div>
+      <div class="chart-container"><div id="chart-temp"></div></div>
+    </div>
+
+    <div class="subsection">
+      <h3>2.3 Kelembapan Udara (0 &ndash; 100%)</h3>
+      <div class="table-wrap"><table class="data-table">
+        <thead><tr><th>Himpunan</th><th>Tipe</th><th>Parameter</th><th>Rentang Penuh</th></tr></thead>
+        <tbody>
+          <tr><td>Rendah (<em>low</em>)</td><td>Trapezoidal</td><td>(0, 0, 25, 45)</td><td>0 &ndash; 45</td></tr>
+          <tr><td>Sedang (<em>medium</em>)</td><td>Triangular</td><td>(35, 55, 75)</td><td>35 &ndash; 75</td></tr>
+          <tr><td>Tinggi (<em>high</em>)</td><td>Trapezoidal</td><td>(65, 80, 100, 100)</td><td>65 &ndash; 100</td></tr>
+        </tbody>
+      </table></div>
+      <div class="chart-container"><div id="chart-humidity"></div></div>
+    </div>
+
+    <div class="subsection">
+      <h3>2.4 Curah Hujan / Presipitasi (mm)</h3>
+      <p>Total presipitasi dalam 3 jam ke depan, diambil otomatis dari API BMKG.</p>
+      <div class="table-wrap"><table class="data-table">
+        <thead><tr><th>Himpunan</th><th>Tipe</th><th>Parameter</th><th>Rentang Penuh</th></tr></thead>
+        <tbody>
+          <tr><td>Tidak Ada (<em>none</em>)</td><td>Trapezoidal</td><td>(0, 0, 0.1, 0.5)</td><td>0 &ndash; 0.5</td></tr>
+          <tr><td>Ringan (<em>light</em>)</td><td>Triangular</td><td>(0.3, 1.5, 4)</td><td>0.3 &ndash; 4</td></tr>
+          <tr><td>Lebat (<em>heavy</em>)</td><td>Trapezoidal</td><td>(3, 6, 50, 50)</td><td>3 &ndash; 50</td></tr>
+        </tbody>
+      </table></div>
+      <div class="chart-container"><div id="chart-rain"></div></div>
+    </div>
+  </div>
+</div>

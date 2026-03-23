@@ -1,0 +1,130 @@
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script>
+  function triangular(a, b, c) {
+    return function(x) {
+      if (x <= a || x >= c) return 0;
+      if (x <= b) return (x - a) / (b - a);
+      return (c - x) / (c - b);
+    };
+  }
+
+  function trapezoidal(a, b, c, d) {
+    return function(x) {
+      if (x <= a || x >= d) return 0;
+      if (x >= b && x <= c) return 1;
+      if (x < b) return (x - a) / (b - a);
+      return (d - x) / (d - c);
+    };
+  }
+
+  function sample(fn, min, max, steps) {
+    var data = [];
+    var step = (max - min) / steps;
+    for (var i = 0; i <= steps; i++) {
+      var x = min + i * step;
+      data.push({ x: Math.round(x * 1000) / 1000, y: Math.round(fn(x) * 1000) / 1000 });
+    }
+    return data;
+  }
+
+  function chartOptions(title, series, xMin, xMax, xLabel) {
+    return {
+      chart: {
+        type: 'line', height: 260, background: 'transparent',
+        toolbar: { show: false }, zoom: { enabled: false },
+        animations: { enabled: true, easing: 'easeinout', speed: 600 }
+      },
+      series: series,
+      xaxis: {
+        type: 'numeric', min: xMin, max: xMax,
+        title: { text: xLabel, style: { color: '#94a3b8', fontSize: '12px' } },
+        labels: { style: { colors: '#64748b' } },
+        axisBorder: { color: '#334155' }, axisTicks: { color: '#334155' }
+      },
+      yaxis: {
+        min: 0, max: 1.05, tickAmount: 4,
+        title: { text: '\u03BC(x)', style: { color: '#94a3b8', fontSize: '12px' } },
+        labels: { style: { colors: '#64748b' }, formatter: function(v) { return v.toFixed(1); } },
+        axisBorder: { color: '#334155' }
+      },
+      stroke: { width: 2.5, curve: 'straight' },
+      legend: {
+        position: 'top', horizontalAlign: 'center',
+        labels: { colors: '#94a3b8' }, fontSize: '12px',
+        markers: { size: 6 }
+      },
+      grid: { borderColor: '#1e293b', strokeDashArray: 3 },
+      tooltip: {
+        theme: 'dark',
+        x: { formatter: function(v) { return xLabel + ': ' + v; } },
+        y: { formatter: function(v) { return '\u03BC = ' + v.toFixed(3); } }
+      },
+      colors: ['#f97316', '#22d3ee', '#3b82f6', '#facc15', '#a855f7'],
+      title: {
+        text: title, align: 'center',
+        style: { color: '#7dd3fc', fontSize: '13px', fontWeight: 600 }
+      }
+    };
+  }
+
+  var chartConfigs = {
+    inputs: [
+      { id: 'chart-soil', title: 'Kelembapan Tanah', xLabel: 'Nilai Sensor', min: 0, max: 1023, steps: 200, sets: [
+        { name: 'Kering', fn: trapezoidal(0, 0, 200, 400) },
+        { name: 'Lembap', fn: triangular(300, 500, 700) },
+        { name: 'Basah', fn: trapezoidal(600, 800, 1023, 1023) }
+      ]},
+      { id: 'chart-temp', title: 'Suhu Udara', xLabel: 'Suhu (\u00B0C)', min: 0, max: 50, steps: 200, sets: [
+        { name: 'Sejuk', fn: trapezoidal(0, 0, 18, 25) },
+        { name: 'Hangat', fn: triangular(22, 28, 34) },
+        { name: 'Panas', fn: trapezoidal(32, 38, 50, 50) }
+      ]},
+      { id: 'chart-humidity', title: 'Kelembapan Udara', xLabel: 'Kelembapan (%)', min: 0, max: 100, steps: 200, sets: [
+        { name: 'Rendah', fn: trapezoidal(0, 0, 25, 45) },
+        { name: 'Sedang', fn: triangular(35, 55, 75) },
+        { name: 'Tinggi', fn: trapezoidal(65, 80, 100, 100) }
+      ]},
+      { id: 'chart-rain', title: 'Curah Hujan', xLabel: 'Presipitasi (mm)', min: 0, max: 10, steps: 200, sets: [
+        { name: 'Tidak Ada', fn: trapezoidal(0, 0, 0.1, 0.5) },
+        { name: 'Ringan', fn: triangular(0.3, 1.5, 4) },
+        { name: 'Lebat', fn: trapezoidal(3, 6, 50, 50) }
+      ]}
+    ],
+    output: [
+      { id: 'chart-output', title: 'Durasi Penyiraman', xLabel: 'Durasi (detik)', min: 0, max: 300, steps: 200, sets: [
+        { name: 'Nol', fn: trapezoidal(0, 0, 0, 20) },
+        { name: 'Pendek', fn: triangular(10, 60, 110) },
+        { name: 'Sedang', fn: triangular(80, 150, 220) },
+        { name: 'Panjang', fn: triangular(180, 240, 280) },
+        { name: 'Sangat Panjang', fn: trapezoidal(250, 280, 300, 300) }
+      ]}
+    ]
+  };
+
+  function docsApp() {
+    return {
+      open: {},
+      charts: {},
+
+      toggle(section) {
+        this.open[section] = !this.open[section];
+        if (this.open[section]) {
+          var self = this;
+          self.$nextTick(function() {
+            var configs = chartConfigs[section] || [];
+            configs.forEach(function(cfg) {
+              if (self.charts[cfg.id]) self.charts[cfg.id].destroy();
+              var series = cfg.sets.map(function(s) {
+                return { name: s.name, data: sample(s.fn, cfg.min, cfg.max, cfg.steps) };
+              });
+              var opts = chartOptions(cfg.title, series, cfg.min, cfg.max, cfg.xLabel);
+              var chart = new ApexCharts(document.getElementById(cfg.id), opts);
+              chart.render();
+              self.charts[cfg.id] = chart;
+            });
+          });
+        }
+      }
+    };
+  }
+</script>

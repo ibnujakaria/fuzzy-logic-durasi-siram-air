@@ -1,0 +1,40 @@
+<div class="section">
+  <div class="section-header" @click="open['example'] = !open['example']">
+    <h2>7. Contoh Perhitungan</h2>
+    <span class="section-arrow" :style="open['example'] ? 'transform:rotate(90deg)' : ''">&#9654;</span>
+  </div>
+  <div class="section-body" x-show="open['example']" x-collapse>
+    <p><strong>Skenario:</strong> Tanah kering (100), suhu panas (36&deg;C), kelembapan udara rendah (20%), tanpa hujan (0.1 mm)</p>
+
+    <div class="subsection">
+      <h3>Langkah 1: Fuzzifikasi</h3>
+      <div class="table-wrap"><table class="data-table">
+        <thead><tr><th>Variabel</th><th>Nilai</th><th>Himpunan</th><th>Derajat</th></tr></thead>
+        <tbody>
+          <tr><td>Kelembapan Tanah</td><td>100</td><td>Kering</td><td>1.00</td></tr>
+          <tr><td>Suhu Udara</td><td>36&deg;C</td><td>Panas</td><td>0.67</td></tr>
+          <tr><td>Kelembapan Udara</td><td>20%</td><td>Rendah</td><td>1.00</td></tr>
+          <tr><td>Curah Hujan</td><td>0.1 mm</td><td>Tidak Ada</td><td>1.00</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <div class="subsection">
+      <h3>Langkah 2: Evaluasi Aturan</h3>
+      <p>Aturan #1 aktif: IF Kering AND Panas AND Rendah AND Tidak Ada THEN Sangat Panjang</p>
+      <div class="formula">
+        strength = min(1.00, 0.67, 1.00, 1.00) = 0.667
+      </div>
+    </div>
+
+    <div class="subsection">
+      <h3>Langkah 3: Defuzzifikasi</h3>
+      <p>Himpunan output "Sangat Panjang" di-clip pada 0.667, lalu dihitung centroid-nya.</p>
+      <div class="formula">Hasil: 279 detik (&asymp; 4 menit 39 detik)</div>
+    </div>
+
+    <div class="note">
+      Coba sendiri di halaman <a href="/fuzzy" style="color:#38bdf8">Fuzzy Logic</a> dengan memasukkan nilai-nilai di atas.
+    </div>
+  </div>
+</div>

@@ -1,0 +1,34 @@
+<div class="section">
+  <div class="section-header" @click="open['membership'] = !open['membership']">
+    <h2>4. Fungsi Keanggotaan</h2>
+    <span class="section-arrow" :style="open['membership'] ? 'transform:rotate(90deg)' : ''">&#9654;</span>
+  </div>
+  <div class="section-body" x-show="open['membership']" x-collapse>
+    <p>Sistem menggunakan dua jenis fungsi keanggotaan:</p>
+
+    <div class="subsection">
+      <h3>Triangular (a, b, c)</h3>
+      <p>Membentuk segitiga dengan puncak di titik <em>b</em>. Nilai keanggotaan = 0 di luar rentang [a, c] dan = 1 di titik b.</p>
+      <div class="formula">
+        &mu;(x) = 0 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; jika x &le; a atau x &ge; c<br>
+        &mu;(x) = (x - a) / (b - a) &nbsp; jika a &lt; x &le; b<br>
+        &mu;(x) = (c - x) / (c - b) &nbsp; jika b &lt; x &lt; c
+      </div>
+    </div>
+
+    <div class="subsection">
+      <h3>Trapezoidal (a, b, c, d)</h3>
+      <p>Membentuk trapesium. Nilai keanggotaan = 1 pada rentang [b, c] dan = 0 di luar [a, d].</p>
+      <div class="formula">
+        &mu;(x) = 0 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; jika x &le; a atau x &ge; d<br>
+        &mu;(x) = (x - a) / (b - a) &nbsp; jika a &lt; x &lt; b<br>
+        &mu;(x) = 1 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; jika b &le; x &le; c<br>
+        &mu;(x) = (d - x) / (d - c) &nbsp; jika c &lt; x &lt; d
+      </div>
+    </div>
+
+    <div class="note">
+      Ketika parameter batas bertemu (misal a = b pada trapezoidal), kurva menjadi "terbuka" di sisi tersebut &mdash; berguna untuk himpunan di ujung rentang seperti "Kering" atau "Basah".
+    </div>
+  </div>
+</div>

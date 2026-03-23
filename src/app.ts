@@ -21,14 +21,14 @@ function renderWithLayout(view: string, data: Record<string, string> = {}): stri
   const viewPath = path.join(VIEWS_DIR, `${view}.ejs`);
 
   const viewContent = fs.readFileSync(viewPath, "utf-8");
-  const rendered = ejs.render(viewContent, data);
+  const rendered = ejs.render(viewContent, data, { filename: viewPath });
 
   const styleMatch = rendered.match(/<style>([\s\S]*?)<\/style>/);
   const style = styleMatch ? `<style>${styleMatch[1]}</style>` : "";
   const body = rendered.replace(/<style>[\s\S]*?<\/style>/, "").trim();
 
   const layout = fs.readFileSync(layoutPath, "utf-8");
-  return ejs.render(layout, { ...data, style, body });
+  return ejs.render(layout, { ...data, style, body }, { filename: layoutPath });
 }
 
 const app = express();
