@@ -5,6 +5,7 @@ import fs from "fs";
 import { fetchWeatherData, getLocationInfo, getRainProbabilityNext3Hours } from "./services/bmkg";
 import { evaluate } from "./fuzzy/engine";
 import { wateringConfig } from "./fuzzy/watering-config";
+import { generateCpp } from "./fuzzy/cpp-generator";
 
 const LOCATION_ID = "35.78.13.1003";
 
@@ -134,6 +135,16 @@ app.post("/api/fuzzify", async (req, res) => {
   } catch (err) {
     logError("POST /api/fuzzify", err);
     res.status(500).json({ error: "Gagal memproses fuzzy logic." });
+  }
+});
+
+app.post("/api/generate-cpp", (req, res) => {
+  try {
+    const code = generateCpp(req.body);
+    res.type("text/plain").send(code);
+  } catch (err) {
+    logError("POST /api/generate-cpp", err);
+    res.status(500).json({ error: "Gagal menghasilkan kode C++." });
   }
 });
 

@@ -211,9 +211,35 @@
     transition: all 0.12s;
   }
   .btn-add-rule:hover { border-color: #38bdf8; color: #38bdf8; }
+
+  /* --- C++ code view --- */
+  .code-actions { display: flex; justify-content: flex-end; margin-bottom: 8px; }
+  .btn-copy-code {
+    padding: 6px 16px;
+    border-radius: 6px;
+    border: 1px solid #334155;
+    background: transparent;
+    color: #94a3b8;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .btn-copy-code:hover { border-color: #38bdf8; color: #38bdf8; }
+  .btn-copy-code.copied { border-color: #22c55e; color: #22c55e; }
+  .code-block {
+    background: #0d1117;
+    border: 1px solid #1e293b;
+    border-radius: 10px;
+    overflow: auto;
+    max-height: 70vh;
+  }
+  .code-block pre { margin: 0; }
+  .code-block pre code.hljs { border-radius: 10px; font-size: 0.82rem; line-height: 1.55; }
 </style>
 
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 
 <div class="cfg-wrap" x-data="configuratorApp()" x-init="init()">
 
@@ -242,6 +268,12 @@
     <button class="cfg-nav-item" :class="{ active: selected === 'aturan' }" @click="selectInput('aturan')">
       <span class="cfg-nav-label">Aturan Inferensi</span>
       <span class="cfg-nav-unit" x-text="'(' + rules.length + ' aturan)'"></span>
+    </button>
+
+    <div class="cfg-sidebar-title" style="margin-top:8px">Export</div>
+    <button class="cfg-nav-item" :class="{ active: selected === 'cpp' }" @click="selectInput('cpp')">
+      <span class="cfg-nav-label">Kode C++</span>
+      <span class="cfg-nav-unit">watering_config.cpp</span>
     </button>
 
     <div class="cfg-sidebar-spacer"></div>
@@ -384,6 +416,23 @@
       <button class="btn-add-rule" @click="addRule()">+ Tambah Aturan</button>
     </div>
 
+    <!-- C++ export view -->
+    <div x-show="isCppView()">
+      <div class="cfg-main-header">
+        <h1>Kode C++</h1>
+        <span class="cfg-range">watering_config.cpp</span>
+      </div>
+      <div class="code-actions">
+        <button class="btn-copy-code" :class="{ copied: copied }" @click="copyCode()"
+          x-text="copied ? '✓ Tersalin!' : 'Salin Kode'"></button>
+      </div>
+      <div class="code-block" x-show="!cppLoading && !cppError">
+        <pre><code id="cpp-output" class="language-cpp"></code></pre>
+      </div>
+      <div x-show="cppLoading" style="color:#94a3b8;padding:20px">Memuat...</div>
+      <div x-show="cppError" style="color:#f87171;padding:20px" x-text="cppError"></div>
+    </div>
+
   </main>
 </div>
 
@@ -446,12 +495,16 @@
       selected: 'kelembapanTanah',
       config: null,
       rules: [],
+      copied: false,
+      cppLoading: false,
+      cppError: '',
 
       allKeys() {
         return this.inputKeys.concat(this.outputKeys);
       },
 
       isRulesView() { return this.selected === 'aturan'; },
+      isCppView()   { return this.selected === 'cpp'; },
 
       init() {
         var defaults = JSON.parse(JSON.stringify(DEFAULTS));
@@ -484,18 +537,22 @@
         }
 
         var param = new URLSearchParams(window.location.search).get('input');
-        if (param && (this.allKeys().includes(param) || param === 'aturan')) this.selected = param;
+        if (param && (this.allKeys().includes(param) || param === 'aturan' || param === 'cpp')) this.selected = param;
 
         var self = this;
         window.addEventListener('popstate', function() {
           var p = new URLSearchParams(window.location.search).get('input');
-          if (p && (self.allKeys().includes(p) || p === 'aturan')) {
+          if (p && (self.allKeys().includes(p) || p === 'aturan' || p === 'cpp')) {
             self.selected = p;
-            if (p !== 'aturan') self.$nextTick(function() { self.renderChart(); });
+            if (p !== 'aturan' && p !== 'cpp') self.$nextTick(function() { self.renderChart(); });
+            if (p === 'cpp') self.$nextTick(function() { self.updateCppCode(); });
           }
         });
 
-        this.$nextTick(function() { this.renderChart(); }.bind(this));
+        this.$nextTick(function() {
+          if (this.isCppView()) { this.updateCppCode(); }
+          else { this.renderChart(); }
+        }.bind(this));
       },
 
       selectInput(key) {
@@ -504,7 +561,10 @@
         var self = this;
         this.$nextTick(function() {
           if (window._cfgChart) { window._cfgChart.destroy(); window._cfgChart = null; }
-          setTimeout(function() { self.renderChart(); }, 0);
+          setTimeout(function() {
+            if (self.isCppView()) { self.updateCppCode(); }
+            else { self.renderChart(); }
+          }, 0);
         });
       },
 
@@ -549,7 +609,7 @@
       },
 
       buildSeries() {
-        if (this.isRulesView()) return [];
+        if (this.isRulesView() || this.isCppView()) return [];
         var inp = this.config[this.selected];
         var self = this;
         return inp.sets.map(function(set) {
@@ -558,7 +618,7 @@
       },
 
       renderChart() {
-        if (this.isRulesView()) return;
+        if (this.isRulesView() || this.isCppView()) return;
         var inp = this.config[this.selected];
         var el = document.getElementById('chart-cfg-combined');
         if (!el) return;
@@ -603,6 +663,45 @@
         window._cfgChart.render();
       },
 
+      updateCppCode() {
+        var self = this;
+        this.cppLoading = true;
+        this.cppError = '';
+        fetch('/api/generate-cpp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ config: this.config, rules: this.rules }),
+        })
+          .then(function(res) {
+            if (!res.ok) throw new Error('Server error ' + res.status);
+            return res.text();
+          })
+          .then(function(code) {
+            self.cppLoading = false;
+            self.$nextTick(function() {
+              var el = document.getElementById('cpp-output');
+              if (!el) return;
+              el.removeAttribute('data-highlighted');
+              el.textContent = code;
+              if (typeof hljs !== 'undefined') hljs.highlightElement(el);
+            });
+          })
+          .catch(function(e) {
+            self.cppLoading = false;
+            self.cppError = 'Gagal menghasilkan kode: ' + (e.message || e);
+          });
+      },
+
+      copyCode() {
+        var el = document.getElementById('cpp-output');
+        if (!el) return;
+        var self = this;
+        navigator.clipboard.writeText(el.textContent).then(function() {
+          self.copied = true;
+          setTimeout(function() { self.copied = false; }, 2000);
+        });
+      },
+
       saveRules() {
         localStorage.setItem('watering-rules', JSON.stringify(this.rules));
       },
@@ -626,7 +725,10 @@
         this.save();
         this.rules = JSON.parse(JSON.stringify(DEFAULT_RULES));
         this.saveRules();
-        this.$nextTick(function() { this.renderChart(); }.bind(this));
+        this.$nextTick(function() {
+          if (this.isCppView()) { this.updateCppCode(); }
+          else { this.renderChart(); }
+        }.bind(this));
       },
     };
   }
