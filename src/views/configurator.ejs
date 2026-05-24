@@ -576,8 +576,13 @@
         this.save();
         this.$nextTick(function() {
           var chart = window._cfgChart;
+          var inp = this.config[this.selected];
           if (chart) {
-            chart.updateSeries(this.buildSeries());
+            chart.updateOptions({
+              series: this.buildSeries(),
+              xaxis: { min: inp.min, max: inp.max },
+              colors: inp.sets.map(function(s) { return s.color; })
+            });
           } else {
             this.renderChart();
           }
