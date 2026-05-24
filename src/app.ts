@@ -179,4 +179,14 @@ app.get("/fuzzy", (_req, res) => {
   }
 });
 
+app.get("/configurator", (_req, res) => {
+  try {
+    const html = renderWithLayout("configurator", { title: "Konfigurasi Fuzzy" });
+    res.send(html);
+  } catch (err) {
+    logError("GET /configurator", err);
+    res.status(500).send("Terjadi kesalahan saat memuat halaman.");
+  }
+});
+
 export { app };
