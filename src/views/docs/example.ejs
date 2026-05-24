@@ -4,14 +4,14 @@
     <span class="section-arrow" :style="open['example'] ? 'transform:rotate(90deg)' : ''">&#9654;</span>
   </div>
   <div class="section-body" x-show="open['example']" x-collapse>
-    <p><strong>Skenario:</strong> Tanah kering (100), suhu panas (36&deg;C), kelembapan udara rendah (20%), tanpa hujan (0.1 mm)</p>
+    <p><strong>Skenario:</strong> Tanah kering (10%), suhu panas (36&deg;C), kelembapan udara rendah (20%), tanpa hujan (0.1 mm)</p>
 
     <div class="subsection">
       <h3>Langkah 1: Fuzzifikasi</h3>
       <div class="table-wrap"><table class="data-table">
         <thead><tr><th>Variabel</th><th>Nilai</th><th>Himpunan</th><th>Derajat</th></tr></thead>
         <tbody>
-          <tr><td>Kelembapan Tanah</td><td>100</td><td>Kering</td><td>1.00</td></tr>
+          <tr><td>Kelembapan Tanah</td><td>10%</td><td>Kering</td><td>1.00</td></tr>
           <tr><td>Suhu Udara</td><td>36&deg;C</td><td>Panas</td><td>0.67</td></tr>
           <tr><td>Kelembapan Udara</td><td>20%</td><td>Rendah</td><td>1.00</td></tr>
           <tr><td>Curah Hujan</td><td>0.1 mm</td><td>Tidak Ada</td><td>1.00</td></tr>

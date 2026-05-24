@@ -90,35 +90,35 @@ app.get("/api/weather-times", async (_req, res) => {
 
 app.post("/api/fuzzify", async (req, res) => {
   try {
-    const { soilMoisture, airTemperature, airHumidity, rainPrecipitation: manualRain } = req.body;
+    const { kelembapanTanah, suhuUdara, kelembapanUdara, curahHujan: manualRain } = req.body;
 
-    if (soilMoisture == null || airTemperature == null || airHumidity == null) {
+    if (kelembapanTanah == null || suhuUdara == null || kelembapanUdara == null) {
       res.status(400).json({ error: "Semua field sensor harus diisi." });
       return;
     }
 
-    let rainPrecipitation: number;
+    let curahHujan: number;
     if (manualRain != null) {
-      rainPrecipitation = Number(manualRain);
+      curahHujan = Number(manualRain);
     } else {
       const weatherData = await fetchWeatherData(LOCATION_ID);
       const rainEntries = getRainProbabilityNext3Hours(weatherData);
-      rainPrecipitation = rainEntries.reduce((sum, e) => sum + e.tp, 0);
+      curahHujan = rainEntries.reduce((sum, e) => sum + e.tp, 0);
     }
 
     const result = evaluate(wateringConfig, {
-      soilMoisture: Number(soilMoisture),
-      airTemperature: Number(airTemperature),
-      airHumidity: Number(airHumidity),
-      rainPrecipitation,
+      kelembapanTanah: Number(kelembapanTanah),
+      suhuUdara: Number(suhuUdara),
+      kelembapanUdara: Number(kelembapanUdara),
+      curahHujan,
     });
 
     res.json({
       inputs: {
-        soilMoisture: Number(soilMoisture),
-        airTemperature: Number(airTemperature),
-        airHumidity: Number(airHumidity),
-        rainPrecipitation,
+        kelembapanTanah: Number(kelembapanTanah),
+        suhuUdara: Number(suhuUdara),
+        kelembapanUdara: Number(kelembapanUdara),
+        curahHujan,
       },
       memberships: result.inputMemberships,
       outputMemberships: result.outputMemberships,
@@ -129,7 +129,7 @@ app.post("/api/fuzzify", async (req, res) => {
           output: r.rule.output,
           strength: Math.round(r.strength * 1000) / 1000,
         })),
-      wateringDuration: result.crispOutput,
+      durasiSiram: result.crispOutput,
     });
   } catch (err) {
     logError("POST /api/fuzzify", err);

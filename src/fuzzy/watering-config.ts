@@ -1,96 +1,96 @@
 import { triangular, trapezoidal } from "./membership";
 import type { FuzzyConfig } from "./types";
 
-// Soil moisture: 0 (dry) to 1023 (submerged in water)
-// Higher analog reading = wetter soil
-const soilMoisture = {
-  name: "soilMoisture",
+// Kelembapan tanah: 0 (kering) sampai 100 (%)
+const kelembapanTanah = {
+  name: "kelembapanTanah",
   sets: {
-    dry:   trapezoidal(0, 0, 200, 400),
-    moist: triangular(300, 500, 700),
-    wet:   trapezoidal(600, 800, 1023, 1023),
+    kering: trapezoidal(0, 0, 20, 40),
+    lembap: triangular(30, 50, 70),
+    basah:  trapezoidal(60, 80, 100, 100),
   },
 };
 
-// Air temperature in Celsius
-const airTemperature = {
-  name: "airTemperature",
+// Suhu udara dalam Celsius
+const suhuUdara = {
+  name: "suhuUdara",
   sets: {
-    cool: trapezoidal(0, 0, 18, 25),
-    warm: triangular(22, 28, 34),
-    hot:  trapezoidal(32, 38, 50, 50),
+    dingin: trapezoidal(0, 0, 18, 25),
+    hangat: triangular(22, 28, 34),
+    panas:  trapezoidal(32, 38, 50, 50),
   },
 };
 
-// Air humidity in %
-const airHumidity = {
-  name: "airHumidity",
+// Kelembapan udara dalam %
+const kelembapanUdara = {
+  name: "kelembapanUdara",
   sets: {
-    low:    trapezoidal(0, 0, 25, 45),
-    medium: triangular(35, 55, 75),
-    high:   trapezoidal(65, 80, 100, 100),
+    rendah: trapezoidal(0, 0, 25, 45),
+    sedang: triangular(35, 55, 75),
+    tinggi: trapezoidal(65, 80, 100, 100),
   },
 };
 
-// Rain precipitation (mm) from BMKG — total in next 3 hours
-const rainPrecipitation = {
-  name: "rainPrecipitation",
+// Curah hujan (mm) dari BMKG — total 3 jam ke depan
+const curahHujan = {
+  name: "curahHujan",
   sets: {
-    none:  trapezoidal(0, 0, 0.1, 0.5),
-    light: triangular(0.3, 1.5, 4),
-    heavy: trapezoidal(3, 6, 50, 50),
+    tidak_ada: trapezoidal(0, 0, 0.1, 0.5),
+    ringan:    triangular(0.3, 1.5, 4),
+    lebat:     trapezoidal(3, 6, 50, 50),
   },
 };
 
-// Output: watering duration in seconds (0–300 = 0–5 minutes)
-const wateringDuration = {
-  name: "wateringDuration",
+// Output: durasi siram dalam detik (0–300 = 0–5 menit)
+const durasiSiram = {
+  name: "durasiSiram",
   sets: {
-    zero:      trapezoidal(0, 0, 0, 20),
-    short:     triangular(10, 60, 110),
-    medium:    triangular(80, 150, 220),
-    long:      triangular(180, 240, 280),
-    very_long: trapezoidal(250, 280, 300, 300),
+    nol:           trapezoidal(0, 0, 0, 20),
+    pendek:        triangular(10, 60, 110),
+    sedang:        triangular(80, 150, 220),
+    panjang:       triangular(180, 240, 280),
+    sangat_panjang: trapezoidal(250, 280, 300, 300),
   },
 };
 
 export const wateringConfig: FuzzyConfig = {
-  inputs: [soilMoisture, airTemperature, airHumidity, rainPrecipitation],
-  output: wateringDuration,
+  inputs: [kelembapanTanah, suhuUdara, kelembapanUdara, curahHujan],
+  output: durasiSiram,
   outputRange: [0, 300],
   rules: [
-    // --- Dry soil ---
-    // No rain
-    { conditions: { soilMoisture: "dry", airTemperature: "hot",  airHumidity: "low",    rainPrecipitation: "none" }, output: "very_long" },
-    { conditions: { soilMoisture: "dry", airTemperature: "hot",  airHumidity: "medium", rainPrecipitation: "none" }, output: "very_long" },
-    { conditions: { soilMoisture: "dry", airTemperature: "hot",  airHumidity: "high",   rainPrecipitation: "none" }, output: "long" },
-    { conditions: { soilMoisture: "dry", airTemperature: "warm", airHumidity: "low",    rainPrecipitation: "none" }, output: "very_long" },
-    { conditions: { soilMoisture: "dry", airTemperature: "warm", airHumidity: "medium", rainPrecipitation: "none" }, output: "long" },
-    { conditions: { soilMoisture: "dry", airTemperature: "warm", airHumidity: "high",   rainPrecipitation: "none" }, output: "medium" },
-    { conditions: { soilMoisture: "dry", airTemperature: "cool", airHumidity: "low",    rainPrecipitation: "none" }, output: "long" },
-    { conditions: { soilMoisture: "dry", airTemperature: "cool", airHumidity: "medium", rainPrecipitation: "none" }, output: "medium" },
-    { conditions: { soilMoisture: "dry", airTemperature: "cool", airHumidity: "high",   rainPrecipitation: "none" }, output: "short" },
-    // Light rain
-    { conditions: { soilMoisture: "dry", airTemperature: "hot",  rainPrecipitation: "light" }, output: "long" },
-    { conditions: { soilMoisture: "dry", airTemperature: "warm", rainPrecipitation: "light" }, output: "medium" },
-    { conditions: { soilMoisture: "dry", airTemperature: "cool", rainPrecipitation: "light" }, output: "short" },
-    // Heavy rain
-    { conditions: { soilMoisture: "dry", rainPrecipitation: "heavy" }, output: "short" },
+    // --- Tanah kering, tanpa hujan (9 aturan) ---
+    { conditions: { kelembapanTanah: "kering", suhuUdara: "panas",  kelembapanUdara: "rendah", curahHujan: "tidak_ada" }, output: "sangat_panjang" },
+    { conditions: { kelembapanTanah: "kering", suhuUdara: "panas",  kelembapanUdara: "sedang", curahHujan: "tidak_ada" }, output: "sangat_panjang" },
+    { conditions: { kelembapanTanah: "kering", suhuUdara: "panas",  kelembapanUdara: "tinggi", curahHujan: "tidak_ada" }, output: "panjang" },
+    { conditions: { kelembapanTanah: "kering", suhuUdara: "hangat", kelembapanUdara: "rendah", curahHujan: "tidak_ada" }, output: "sangat_panjang" },
+    { conditions: { kelembapanTanah: "kering", suhuUdara: "hangat", kelembapanUdara: "sedang", curahHujan: "tidak_ada" }, output: "panjang" },
+    { conditions: { kelembapanTanah: "kering", suhuUdara: "hangat", kelembapanUdara: "tinggi", curahHujan: "tidak_ada" }, output: "sedang" },
+    { conditions: { kelembapanTanah: "kering", suhuUdara: "dingin", kelembapanUdara: "rendah", curahHujan: "tidak_ada" }, output: "panjang" },
+    { conditions: { kelembapanTanah: "kering", suhuUdara: "dingin", kelembapanUdara: "sedang", curahHujan: "tidak_ada" }, output: "sedang" },
+    { conditions: { kelembapanTanah: "kering", suhuUdara: "dingin", kelembapanUdara: "tinggi", curahHujan: "tidak_ada" }, output: "pendek" },
 
-    // --- Moist soil ---
-    // No rain
-    { conditions: { soilMoisture: "moist", airTemperature: "hot",  airHumidity: "low",    rainPrecipitation: "none" }, output: "long" },
-    { conditions: { soilMoisture: "moist", airTemperature: "hot",  airHumidity: "medium", rainPrecipitation: "none" }, output: "medium" },
-    { conditions: { soilMoisture: "moist", airTemperature: "hot",  airHumidity: "high",   rainPrecipitation: "none" }, output: "short" },
-    { conditions: { soilMoisture: "moist", airTemperature: "warm", airHumidity: "low",    rainPrecipitation: "none" }, output: "medium" },
-    { conditions: { soilMoisture: "moist", airTemperature: "warm", airHumidity: "medium", rainPrecipitation: "none" }, output: "short" },
-    { conditions: { soilMoisture: "moist", airTemperature: "warm", airHumidity: "high",   rainPrecipitation: "none" }, output: "zero" },
-    { conditions: { soilMoisture: "moist", airTemperature: "cool", rainPrecipitation: "none" }, output: "zero" },
-    // Any rain
-    { conditions: { soilMoisture: "moist", rainPrecipitation: "light" }, output: "zero" },
-    { conditions: { soilMoisture: "moist", rainPrecipitation: "heavy" }, output: "zero" },
+    // --- Tanah kering, hujan ringan (3 aturan) ---
+    { conditions: { kelembapanTanah: "kering", suhuUdara: "panas",  curahHujan: "ringan" }, output: "panjang" },
+    { conditions: { kelembapanTanah: "kering", suhuUdara: "hangat", curahHujan: "ringan" }, output: "sedang" },
+    { conditions: { kelembapanTanah: "kering", suhuUdara: "dingin", curahHujan: "ringan" }, output: "pendek" },
 
-    // --- Wet soil ---
-    { conditions: { soilMoisture: "wet" }, output: "zero" },
+    // --- Tanah kering, hujan lebat (1 aturan) ---
+    { conditions: { kelembapanTanah: "kering", curahHujan: "lebat" }, output: "pendek" },
+
+    // --- Tanah lembap, tanpa hujan (7 aturan) ---
+    { conditions: { kelembapanTanah: "lembap", suhuUdara: "panas",  kelembapanUdara: "rendah", curahHujan: "tidak_ada" }, output: "panjang" },
+    { conditions: { kelembapanTanah: "lembap", suhuUdara: "panas",  kelembapanUdara: "sedang", curahHujan: "tidak_ada" }, output: "sedang" },
+    { conditions: { kelembapanTanah: "lembap", suhuUdara: "panas",  kelembapanUdara: "tinggi", curahHujan: "tidak_ada" }, output: "pendek" },
+    { conditions: { kelembapanTanah: "lembap", suhuUdara: "hangat", kelembapanUdara: "rendah", curahHujan: "tidak_ada" }, output: "sedang" },
+    { conditions: { kelembapanTanah: "lembap", suhuUdara: "hangat", kelembapanUdara: "sedang", curahHujan: "tidak_ada" }, output: "pendek" },
+    { conditions: { kelembapanTanah: "lembap", suhuUdara: "hangat", kelembapanUdara: "tinggi", curahHujan: "tidak_ada" }, output: "nol" },
+    { conditions: { kelembapanTanah: "lembap", suhuUdara: "dingin", curahHujan: "tidak_ada" }, output: "nol" },
+
+    // --- Tanah lembap, ada hujan (2 aturan) ---
+    { conditions: { kelembapanTanah: "lembap", curahHujan: "ringan" }, output: "nol" },
+    { conditions: { kelembapanTanah: "lembap", curahHujan: "lebat"  }, output: "nol" },
+
+    // --- Tanah basah (1 aturan) ---
+    { conditions: { kelembapanTanah: "basah" }, output: "nol" },
   ],
 };

@@ -30,78 +30,78 @@ Crisp Inputs → Fuzzification → Rule Evaluation (AND=min) → Aggregation (MA
 
 ## 2. Input Variables
 
-### 2.1 Soil Moisture (`soilMoisture`)
+### 2.1 Kelembapan Tanah (`kelembapanTanah`)
 
-Analog sensor reading. Higher value = wetter soil.
-
-- **Universe of discourse**: [0, 1023]
-- **Source**: Hardware sensor (3 user-provided fields)
-
-| Fuzzy Set | Type | Parameters | Support |
-|---|---|---|---|
-| `dry` | Trapezoidal | (0, 0, 200, 400) | [0, 400] |
-| `moist` | Triangular | (300, 500, 700) | (300, 700) |
-| `wet` | Trapezoidal | (600, 800, 1023, 1023) | [600, 1023] |
-
-Overlap zones: dry∩moist at [300,400], moist∩wet at [600,700].
-
-### 2.2 Air Temperature (`airTemperature`)
-
-- **Universe of discourse**: [0, 50] °C
-- **Source**: Hardware sensor (user-provided)
-
-| Fuzzy Set | Type | Parameters | Support |
-|---|---|---|---|
-| `cool` | Trapezoidal | (0, 0, 18, 25) | [0, 25] |
-| `warm` | Triangular | (22, 28, 34) | (22, 34) |
-| `hot` | Trapezoidal | (32, 38, 50, 50) | [32, 50] |
-
-Overlap zones: cool∩warm at [22,25], warm∩hot at [32,34].
-
-### 2.3 Air Humidity (`airHumidity`)
+Nilai kelembapan tanah dalam persen. Semakin tinggi nilainya, semakin basah tanahnya.
 
 - **Universe of discourse**: [0, 100] %
 - **Source**: Hardware sensor (user-provided)
 
 | Fuzzy Set | Type | Parameters | Support |
 |---|---|---|---|
-| `low` | Trapezoidal | (0, 0, 25, 45) | [0, 45] |
-| `medium` | Triangular | (35, 55, 75) | (35, 75) |
-| `high` | Trapezoidal | (65, 80, 100, 100) | [65, 100] |
+| `kering` | Trapezoidal | (0, 0, 20, 40) | [0, 40] |
+| `lembap` | Triangular | (30, 50, 70) | (30, 70) |
+| `basah` | Trapezoidal | (60, 80, 100, 100) | [60, 100] |
 
-Overlap zones: low∩medium at [35,45], medium∩high at [65,75].
+Overlap zones: kering∩lembap at [30,40], lembap∩basah at [60,70].
 
-### 2.4 Rain Precipitation (`rainPrecipitation`)
+### 2.2 Suhu Udara (`suhuUdara`)
 
-Total precipitation forecast for the next 3 hours.
-
-- **Universe of discourse**: [0, 50] mm
-- **Source**: BMKG API (automatically fetched, sum of `tp` fields from `getRainProbabilityNext3Hours`)
+- **Universe of discourse**: [0, 50] °C
+- **Source**: Hardware sensor (user-provided)
 
 | Fuzzy Set | Type | Parameters | Support |
 |---|---|---|---|
-| `none` | Trapezoidal | (0, 0, 0.1, 0.5) | [0, 0.5] |
-| `light` | Triangular | (0.3, 1.5, 4) | (0.3, 4) |
-| `heavy` | Trapezoidal | (3, 6, 50, 50) | [3, 50] |
+| `dingin` | Trapezoidal | (0, 0, 18, 25) | [0, 25] |
+| `hangat` | Triangular | (22, 28, 34) | (22, 34) |
+| `panas` | Trapezoidal | (32, 38, 50, 50) | [32, 50] |
 
-Overlap zones: none∩light at [0.3,0.5], light∩heavy at [3,4].
+Overlap zones: dingin∩hangat at [22,25], hangat∩panas at [32,34].
+
+### 2.3 Kelembapan Udara (`kelembapanUdara`)
+
+- **Universe of discourse**: [0, 100] %
+- **Source**: Hardware sensor (user-provided)
+
+| Fuzzy Set | Type | Parameters | Support |
+|---|---|---|---|
+| `rendah` | Trapezoidal | (0, 0, 25, 45) | [0, 45] |
+| `sedang` | Triangular | (35, 55, 75) | (35, 75) |
+| `tinggi` | Trapezoidal | (65, 80, 100, 100) | [65, 100] |
+
+Overlap zones: rendah∩sedang at [35,45], sedang∩tinggi at [65,75].
+
+### 2.4 Curah Hujan (`curahHujan`)
+
+Total prakiraan presipitasi 3 jam ke depan.
+
+- **Universe of discourse**: [0, 50] mm
+- **Source**: BMKG API (diambil otomatis, jumlah field `tp` dari `getRainProbabilityNext3Hours`)
+
+| Fuzzy Set | Type | Parameters | Support |
+|---|---|---|---|
+| `tidak_ada` | Trapezoidal | (0, 0, 0.1, 0.5) | [0, 0.5] |
+| `ringan` | Triangular | (0.3, 1.5, 4) | (0.3, 4) |
+| `lebat` | Trapezoidal | (3, 6, 50, 50) | [3, 50] |
+
+Overlap zones: tidak_ada∩ringan at [0.3,0.5], ringan∩lebat at [3,4].
 
 ---
 
 ## 3. Output Variable
 
-### Watering Duration (`wateringDuration`)
+### Durasi Siram (`durasiSiram`)
 
-- **Universe of discourse**: [0, 300] seconds (0–5 minutes)
-- **Defuzzification resolution**: 200 discrete points
+- **Universe of discourse**: [0, 300] detik (0–5 menit)
+- **Defuzzification resolution**: 200 titik diskrit
 
 | Fuzzy Set | Type | Parameters | Support |
 |---|---|---|---|
-| `zero` | Trapezoidal | (0, 0, 0, 20) | [0, 20] |
-| `short` | Triangular | (10, 60, 110) | (10, 110) |
-| `medium` | Triangular | (80, 150, 220) | (80, 220) |
-| `long` | Triangular | (180, 240, 280) | (180, 280) |
-| `very_long` | Trapezoidal | (250, 280, 300, 300) | [250, 300] |
+| `nol` | Trapezoidal | (0, 0, 0, 20) | [0, 20] |
+| `pendek` | Triangular | (10, 60, 110) | (10, 110) |
+| `sedang` | Triangular | (80, 150, 220) | (80, 220) |
+| `panjang` | Triangular | (180, 240, 280) | (180, 280) |
+| `sangat_panjang` | Trapezoidal | (250, 280, 300, 300) | [250, 300] |
 
 ---
 
@@ -130,68 +130,68 @@ Plateau at [b, c] where μ = 1. When `a = b`, the left shoulder is open (μ = 1 
 
 ---
 
-## 5. Rule Base (24 Rules)
+## 5. Rule Base (23 Rules)
 
 All rules use AND (min) operator for antecedent conjunction. Rules are defined in `watering-config.ts` in the `rules` array.
 
-### Dry Soil — No Rain (9 rules)
+### Tanah Kering — Tanpa Hujan (9 aturan)
 
-| # | Temperature | Humidity | → Output |
+| # | Suhu | Kelembapan Udara | → Output |
 |---|---|---|---|
-| 1 | hot | low | very_long |
-| 2 | hot | medium | very_long |
-| 3 | hot | high | long |
-| 4 | warm | low | very_long |
-| 5 | warm | medium | long |
-| 6 | warm | high | medium |
-| 7 | cool | low | long |
-| 8 | cool | medium | medium |
-| 9 | cool | high | short |
+| 1 | panas | rendah | sangat_panjang |
+| 2 | panas | sedang | sangat_panjang |
+| 3 | panas | tinggi | panjang |
+| 4 | hangat | rendah | sangat_panjang |
+| 5 | hangat | sedang | panjang |
+| 6 | hangat | tinggi | sedang |
+| 7 | dingin | rendah | panjang |
+| 8 | dingin | sedang | sedang |
+| 9 | dingin | tinggi | pendek |
 
-### Dry Soil — Light Rain (3 rules)
+### Tanah Kering — Hujan Ringan (3 aturan)
 
-| # | Temperature | → Output |
+| # | Suhu | → Output |
 |---|---|---|
-| 10 | hot | long |
-| 11 | warm | medium |
-| 12 | cool | short |
+| 10 | panas | panjang |
+| 11 | hangat | sedang |
+| 12 | dingin | pendek |
 
-Note: these rules do not specify humidity — any humidity level matches.
+Catatan: aturan ini tidak menyertakan kelembapan udara — semua nilai kelembapan cocok.
 
-### Dry Soil — Heavy Rain (1 rule)
+### Tanah Kering — Hujan Lebat (1 aturan)
 
 | # | → Output |
 |---|---|
-| 13 | short |
+| 13 | pendek |
 
-Only `soilMoisture=dry` and `rainPrecipitation=heavy` are specified. All temperature/humidity values match.
+Hanya `kelembapanTanah=kering` dan `curahHujan=lebat` yang ditentukan. Semua nilai suhu/kelembapan cocok.
 
-### Moist Soil — No Rain (7 rules)
+### Tanah Lembap — Tanpa Hujan (7 aturan)
 
-| # | Temperature | Humidity | → Output |
+| # | Suhu | Kelembapan Udara | → Output |
 |---|---|---|---|
-| 14 | hot | low | long |
-| 15 | hot | medium | medium |
-| 16 | hot | high | short |
-| 17 | warm | low | medium |
-| 18 | warm | medium | short |
-| 19 | warm | high | zero |
-| 20 | cool | (any) | zero |
+| 14 | panas | rendah | panjang |
+| 15 | panas | sedang | sedang |
+| 16 | panas | tinggi | pendek |
+| 17 | hangat | rendah | sedang |
+| 18 | hangat | sedang | pendek |
+| 19 | hangat | tinggi | nol |
+| 20 | dingin | (semua) | nol |
 
-### Moist Soil — Any Rain (2 rules)
+### Tanah Lembap — Ada Hujan (2 aturan)
 
-| # | Rain | → Output |
+| # | Hujan | → Output |
 |---|---|---|
-| 21 | light | zero |
-| 22 | heavy | zero |
+| 21 | ringan | nol |
+| 22 | lebat | nol |
 
-### Wet Soil (1 rule)
+### Tanah Basah (1 aturan)
 
 | # | → Output |
 |---|---|
-| 23 | zero |
+| 23 | nol |
 
-Only `soilMoisture=wet` is specified. Unconditional — wet soil always produces zero watering regardless of other inputs.
+Hanya `kelembapanTanah=basah` yang ditentukan. Tanpa syarat — tanah basah selalu menghasilkan durasi nol.
 
 ### Rule Design Notes
 
@@ -206,11 +206,11 @@ Only `soilMoisture=wet` is specified. Unconditional — wet soil always produces
 
 Each crisp input value is evaluated against all membership functions of its linguistic variable, producing a degree ∈ [0, 1] for each fuzzy set.
 
-Example: `soilMoisture = 350`
+Contoh: `kelembapanTanah = 35`
 ```
-μ_dry(350)   = (400 - 350) / (400 - 200) = 0.25
-μ_moist(350) = (350 - 300) / (500 - 300) = 0.25
-μ_wet(350)   = 0
+μ_kering(35) = (40 - 35) / (40 - 20) = 0.25
+μ_lembap(35) = (35 - 30) / (50 - 30) = 0.25
+μ_basah(35)  = 0
 ```
 
 ### 6.2 Rule Evaluation (`evaluateRules` in engine.ts)
@@ -265,30 +265,30 @@ y* = Σ(y × μ_agg(y)) / Σ(μ_agg(y))
 **Request body:**
 ```json
 {
-  "soilMoisture": 200,
-  "airTemperature": 35,
-  "airHumidity": 30,
-  "rainPrecipitation": 0.5
+  "kelembapanTanah": 20,
+  "suhuUdara": 35,
+  "kelembapanUdara": 30,
+  "curahHujan": 0.5
 }
 ```
 
-`rainPrecipitation` is **optional**. If provided, the value is used directly (manual mode). If omitted, the server fetches it automatically from BMKG via `getRainProbabilityNext3Hours`, summing the `tp` (total precipitation) field across all forecast entries within the next 3 hours.
+`curahHujan` bersifat **opsional**. Jika disertakan, nilainya digunakan langsung (mode manual). Jika dihilangkan, server mengambilnya otomatis dari BMKG via `getRainProbabilityNext3Hours`, menjumlahkan field `tp` dari semua entri prakiraan 3 jam ke depan.
 
 **Response:**
 ```json
 {
-  "inputs": { "soilMoisture": 200, "airTemperature": 35, "airHumidity": 30, "rainPrecipitation": 0.5 },
-  "memberships": { "soilMoisture": { "dry": 1, "moist": 0, "wet": 0 }, ... },
-  "outputMemberships": { "zero": 0, "short": 0, "medium": 0, "long": 0.25, "very_long": 0.25 },
-  "activeRules": [{ "conditions": {...}, "output": "very_long", "strength": 0.667 }],
-  "wateringDuration": 279
+  "inputs": { "kelembapanTanah": 20, "suhuUdara": 35, "kelembapanUdara": 30, "curahHujan": 0.5 },
+  "memberships": { "kelembapanTanah": { "kering": 1, "lembap": 0, "basah": 0 }, ... },
+  "outputMemberships": { "nol": 0, "pendek": 0, "sedang": 0, "panjang": 0.25, "sangat_panjang": 0.25 },
+  "activeRules": [{ "conditions": {...}, "output": "sangat_panjang", "strength": 0.667 }],
+  "durasiSiram": 279
 }
 ```
 
-- `memberships`: input membership degrees per variable per fuzzy set
-- `outputMemberships`: max fire strength per output fuzzy set (shows which output sets are active before defuzzification)
-- `activeRules`: rules with strength > 0
-- `wateringDuration`: defuzzified crisp output in seconds
+- `memberships`: derajat keanggotaan input per variabel per himpunan fuzzy
+- `outputMemberships`: kekuatan aktivasi maksimum per himpunan output (sebelum defuzzifikasi)
+- `activeRules`: aturan dengan strength > 0
+- `durasiSiram`: output crisp hasil defuzzifikasi dalam satuan detik
 
 ### BMKG Location
 
@@ -298,20 +298,20 @@ The BMKG location ID is hardcoded as `LOCATION_ID = "35.78.13.1003"` in `src/app
 
 ## 8. Worked Example
 
-**Inputs**: soilMoisture=100, airTemperature=36°C, airHumidity=20%, rainPrecipitation=0.1mm
+**Inputs**: kelembapanTanah=10%, suhuUdara=36°C, kelembapanUdara=20%, curahHujan=0.1mm
 
 ### Step 1: Fuzzification
 
-| Variable | Value | dry/cool/low/none | moist/warm/medium/light | wet/hot/high/heavy |
+| Variable | Value | kering/dingin/rendah/tidak_ada | lembap/hangat/sedang/ringan | basah/panas/tinggi/lebat |
 |---|---|---|---|---|
-| soilMoisture | 100 | 1.00 | 0 | 0 |
-| airTemperature | 36 | — | 0 (warm) | 0.667 (hot) |
-| airHumidity | 20 | 1.00 | 0 | 0 |
-| rainPrecipitation | 0.1 | 1.00 | 0 | 0 |
+| kelembapanTanah | 10% | 1.00 | 0 | 0 |
+| suhuUdara | 36°C | — | 0 (hangat) | 0.667 (panas) |
+| kelembapanUdara | 20% | 1.00 | 0 | 0 |
+| curahHujan | 0.1mm | 1.00 | 0 | 0 |
 
 ### Step 2: Rule Evaluation
 
-Rule 1 fires: `{dry, hot, low, none} → very_long`
+Rule 1 fires: `{kering, panas, rendah, tidak_ada} → sangat_panjang`
 ```
 strength = min(1.00, 0.667, 1.00, 1.00) = 0.667
 ```
@@ -320,4 +320,4 @@ All other rules have strength = 0 (at least one condition evaluates to 0).
 
 ### Step 3: Defuzzification
 
-The `very_long` output set (trapezoidal 250,280,300,300) is clipped at 0.667. Centroid computation over 200 points yields **279 seconds** (~4 min 39 sec).
+The `sangat_panjang` output set (trapezoidal 250,280,300,300) is clipped at 0.667. Centroid computation over 200 points yields **279 seconds** (~4 min 39 sec).

@@ -69,13 +69,13 @@
 
   var chartConfigs = {
     inputs: [
-      { id: 'chart-soil', title: 'Kelembapan Tanah', xLabel: 'Nilai Sensor', min: 0, max: 1023, steps: 200, sets: [
-        { name: 'Kering', fn: trapezoidal(0, 0, 200, 400) },
-        { name: 'Lembap', fn: triangular(300, 500, 700) },
-        { name: 'Basah', fn: trapezoidal(600, 800, 1023, 1023) }
+      { id: 'chart-soil', title: 'Kelembapan Tanah', xLabel: 'Kelembapan (%)', min: 0, max: 100, steps: 200, sets: [
+        { name: 'Kering', fn: trapezoidal(0, 0, 20, 40) },
+        { name: 'Lembap', fn: triangular(30, 50, 70) },
+        { name: 'Basah', fn: trapezoidal(60, 80, 100, 100) }
       ]},
       { id: 'chart-temp', title: 'Suhu Udara', xLabel: 'Suhu (\u00B0C)', min: 0, max: 50, steps: 200, sets: [
-        { name: 'Sejuk', fn: trapezoidal(0, 0, 18, 25) },
+        { name: 'Dingin', fn: trapezoidal(0, 0, 18, 25) },
         { name: 'Hangat', fn: triangular(22, 28, 34) },
         { name: 'Panas', fn: trapezoidal(32, 38, 50, 50) }
       ]},

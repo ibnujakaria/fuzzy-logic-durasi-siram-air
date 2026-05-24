@@ -6,7 +6,7 @@ Aplikasi web untuk monitoring cuaca dan analisis penyiraman tanaman menggunakan 
 
 - **Prakiraan Cuaca** — Menampilkan cuaca terkini dan prakiraan mendatang berdasarkan data BMKG
 - **Fuzzy Logic** — Menentukan durasi penyiraman berdasarkan 4 input:
-  - Kelembapan tanah (sensor analog, 0–1023)
+  - Kelembapan tanah (%, 0–100)
   - Suhu udara (°C)
   - Kelembapan udara (%)
   - Curah hujan 3 jam ke depan (otomatis dari BMKG)
@@ -39,9 +39,9 @@ Server berjalan di `http://localhost:3780`.
 
 ```json
 {
-  "soilMoisture": 200,
-  "airTemperature": 35,
-  "airHumidity": 30
+  "kelembapanTanah": 20,
+  "suhuUdara": 35,
+  "kelembapanUdara": 30
 }
 ```
 

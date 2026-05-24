@@ -3,26 +3,26 @@
     <h2>Hasil Analisis Fuzzy</h2>
 
     <div class="result-duration">
-      <div class="duration-value" x-text="result.wateringDuration + ' detik'"></div>
-      <div class="duration-label" x-text="formatDuration(result.wateringDuration)"></div>
+      <div class="duration-value" x-text="result.durasiSiram + ' detik'"></div>
+      <div class="duration-label" x-text="formatDuration(result.durasiSiram)"></div>
     </div>
 
     <div class="result-inputs">
       <div class="result-input-item">
         <div class="ri-label">Kelembapan Tanah</div>
-        <div class="ri-value" x-text="result.inputs.soilMoisture"></div>
+        <div class="ri-value" x-text="result.inputs.kelembapanTanah + '%'"></div>
       </div>
       <div class="result-input-item">
         <div class="ri-label">Suhu Udara</div>
-        <div class="ri-value" x-text="result.inputs.airTemperature + '\u00B0C'"></div>
+        <div class="ri-value" x-text="result.inputs.suhuUdara + '\u00B0C'"></div>
       </div>
       <div class="result-input-item">
         <div class="ri-label">Kelembapan Udara</div>
-        <div class="ri-value" x-text="result.inputs.airHumidity + '%'"></div>
+        <div class="ri-value" x-text="result.inputs.kelembapanUdara + '%'"></div>
       </div>
       <div class="result-input-item">
         <div class="ri-label">Curah Hujan</div>
-        <div class="ri-value" x-text="result.inputs.rainPrecipitation + ' mm'"></div>
+        <div class="ri-value" x-text="result.inputs.curahHujan + ' mm'"></div>
       </div>
     </div>
 
