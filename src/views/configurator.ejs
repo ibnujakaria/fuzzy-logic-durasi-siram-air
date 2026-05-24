@@ -285,7 +285,7 @@
     <a href="/" class="cfg-back">&larr; Beranda</a>
 
     <!-- Config view -->
-    <div x-show="!isRulesView()">
+    <div x-show="!isRulesView() && !isCppView()">
       <div class="cfg-main-header">
         <h1 x-text="config[selected] ? config[selected].label : ''"></h1>
         <span class="cfg-range"
