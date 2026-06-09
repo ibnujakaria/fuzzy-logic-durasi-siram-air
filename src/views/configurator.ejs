@@ -289,7 +289,7 @@
       <div class="cfg-main-header">
         <h1 x-text="config[selected] ? config[selected].label : ''"></h1>
         <span class="cfg-range"
-          x-text="config[selected] ? 'Rentang: ' + config[selected].min + ' – ' + config[selected].max + ' ' + config[selected].unit : ''">
+          x-text="config[selected] ? 'Rentang: ' + getRange(selected).min + ' – ' + getRange(selected).max + ' ' + config[selected].unit : ''">
         </span>
       </div>
 
@@ -440,7 +440,7 @@
   function configuratorApp() {
     var DEFAULTS = {
       kelembapanTanah: {
-        label: 'Kelembapan Tanah', unit: '%', min: 0, max: 100,
+        label: 'Kelembapan Tanah', unit: '%',
         sets: [
           { key: 'kering', label: 'Kering', fn: 'trapesium', a: 0,  b: 0,  c: 20,  d: 40,  color: '#f97316' },
           { key: 'lembap', label: 'Lembap', fn: 'segitiga',  a: 30, b: 50, c: 70,  d: 70,  color: '#22d3ee' },
@@ -448,7 +448,7 @@
         ]
       },
       suhuUdara: {
-        label: 'Suhu Udara', unit: '°C', min: 0, max: 50,
+        label: 'Suhu Udara', unit: '°C',
         sets: [
           { key: 'dingin', label: 'Dingin', fn: 'trapesium', a: 0,  b: 0,  c: 18, d: 25, color: '#22d3ee' },
           { key: 'hangat', label: 'Hangat', fn: 'segitiga',  a: 22, b: 28, c: 34, d: 34, color: '#facc15' },
@@ -456,7 +456,7 @@
         ]
       },
       kelembapanUdara: {
-        label: 'Kelembapan Udara', unit: '%', min: 0, max: 100,
+        label: 'Kelembapan Udara', unit: '%',
         sets: [
           { key: 'rendah', label: 'Rendah', fn: 'trapesium', a: 0,  b: 0,  c: 25,  d: 45,  color: '#f97316' },
           { key: 'sedang', label: 'Sedang', fn: 'segitiga',  a: 35, b: 55, c: 75,  d: 75,  color: '#22d3ee' },
@@ -464,7 +464,7 @@
         ]
       },
       curahHujan: {
-        label: 'Curah Hujan', unit: 'mm', min: 0, max: 10,
+        label: 'Curah Hujan', unit: 'mm',
         sets: [
           { key: 'tidak_ada', label: 'Tidak Ada', fn: 'trapesium', a: 0,   b: 0,   c: 0.1, d: 0.5, color: '#facc15' },
           { key: 'ringan',    label: 'Ringan',    fn: 'segitiga',  a: 0.3, b: 1.5, c: 4,   d: 4,   color: '#22d3ee' },
@@ -472,7 +472,7 @@
         ]
       },
       durasiSiram: {
-        label: 'Durasi Siram', unit: 'detik', min: 0, max: 300,
+        label: 'Durasi Siram', unit: 'detik',
         sets: [
           { key: 'nol',           label: 'Nol',           fn: 'trapesium', a: 0,   b: 0,   c: 0,   d: 20,  color: '#94a3b8' },
           { key: 'pendek',        label: 'Pendek',        fn: 'segitiga',  a: 10,  b: 60,  c: 110, d: 110, color: '#22d3ee' },
@@ -506,6 +506,14 @@
       isRulesView() { return this.selected === 'aturan'; },
       isCppView()   { return this.selected === 'cpp'; },
 
+      getRange(key) {
+        var sets = this.config[key].sets;
+        var vals = sets.reduce(function(acc, s) {
+          return acc.concat([s.a, s.b, s.c, s.d]);
+        }, []);
+        return { min: Math.min.apply(null, vals), max: Math.max.apply(null, vals) };
+      },
+
       init() {
         var defaults = JSON.parse(JSON.stringify(DEFAULTS));
         var parsed = null;
@@ -521,7 +529,7 @@
           var k = allKeys[i];
           var entry = parsed && parsed[k];
           var valid = entry && Array.isArray(entry.sets) && entry.sets.length > 0
-            && typeof entry.label === 'string' && typeof entry.min === 'number' && typeof entry.max === 'number';
+            && typeof entry.label === 'string';
           this.config[k] = valid ? entry : defaults[k];
         }
 
@@ -577,10 +585,11 @@
         this.$nextTick(function() {
           var chart = window._cfgChart;
           var inp = this.config[this.selected];
+          var range = this.getRange(this.selected);
           if (chart) {
             chart.updateOptions({
               series: this.buildSeries(),
-              xaxis: { min: inp.min, max: inp.max },
+              xaxis: { min: range.min, max: range.max },
               colors: inp.sets.map(function(s) { return s.color; })
             });
           } else {
@@ -616,15 +625,17 @@
       buildSeries() {
         if (this.isRulesView() || this.isCppView()) return [];
         var inp = this.config[this.selected];
+        var range = this.getRange(this.selected);
         var self = this;
         return inp.sets.map(function(set) {
-          return { name: set.label, data: self.sampleMf(set, inp.min, inp.max) };
+          return { name: set.label, data: self.sampleMf(set, range.min, range.max) };
         });
       },
 
       renderChart() {
         if (this.isRulesView() || this.isCppView()) return;
         var inp = this.config[this.selected];
+        var range = this.getRange(this.selected);
         var el = document.getElementById('chart-cfg-combined');
         if (!el) return;
         if (window._cfgChart) { window._cfgChart.destroy(); window._cfgChart = null; }
@@ -639,7 +650,7 @@
           stroke: { width: 2.5, curve: 'straight' },
           colors: inp.sets.map(function(s) { return s.color; }),
           xaxis: {
-            type: 'numeric', min: inp.min, max: inp.max, tickAmount: 6,
+            type: 'numeric', min: range.min, max: range.max, tickAmount: 6,
             title: { text: inp.label + ' (' + inp.unit + ')', style: { color: '#94a3b8', fontSize: '12px' } },
             labels: {
               style: { colors: '#64748b', fontSize: '11px' },

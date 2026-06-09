@@ -6,8 +6,6 @@ interface FuzzySet {
 
 interface FuzzyVariable {
   unit: string;
-  min: number;
-  max: number;
   sets: FuzzySet[];
 }
 
@@ -31,6 +29,11 @@ function fmtFloat(n: number): string {
   return s.includes(".") ? s : s + ".0f";
 }
 
+function computeRange(v: FuzzyVariable): { min: number; max: number } {
+  const vals = v.sets.flatMap((s) => [s.a, s.b, s.c, s.d]);
+  return { min: Math.min(...vals), max: Math.max(...vals) };
+}
+
 export function generateCpp(input: GenerateCppInput): string {
   const { config, rules } = input;
   const inputKeys = ["kelembapanTanah", "suhuUdara", "kelembapanUdara", "curahHujan"];
@@ -48,7 +51,8 @@ export function generateCpp(input: GenerateCppInput): string {
   for (const key of inputKeys) {
     const v = config[key];
     if (!v) continue;
-    L.push(`            // ${key} [${v.min}-${v.max} ${v.unit}]`);
+    const { min, max } = computeRange(v);
+    L.push(`            // ${key} [${min}-${max} ${v.unit}]`);
     L.push(`            { "${key}", {`);
     v.sets.forEach((s, i) => {
       const fn = s.fn === "segitiga" ? "segitiga" : "trapesium";
@@ -67,7 +71,8 @@ export function generateCpp(input: GenerateCppInput): string {
   L.push("");
 
   const out = config[outputKey];
-  L.push(`        // --- output: ${outputKey} [${out.min}-${out.max} ${out.unit}] ---`);
+  const outRange = computeRange(out);
+  L.push(`        // --- output: ${outputKey} [${outRange.min}-${outRange.max} ${out.unit}] ---`);
   L.push(`        { "${outputKey}", {`);
   out.sets.forEach((s, i) => {
     const fn = s.fn === "segitiga" ? "segitiga" : "trapesium";
@@ -96,7 +101,7 @@ export function generateCpp(input: GenerateCppInput): string {
   L.push(`        ${activeRules.length}, // ruleCount`);
   L.push("");
   L.push("        // outputMin, outputMax");
-  L.push(`        ${fmtFloat(out.min)}, ${fmtFloat(out.max)}`);
+  L.push(`        ${fmtFloat(outRange.min)}, ${fmtFloat(outRange.max)}`);
   L.push("    };");
   L.push("    return config;");
   L.push("}");
