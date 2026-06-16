@@ -253,12 +253,33 @@
   }
   .sim-step-title { color: #38bdf8; font-weight: bold; font-size: 1rem; margin-bottom: 4px; }
   .sim-step-desc { color: #94a3b8; font-size: 0.85rem; margin-bottom: 12px; }
-  .sim-math-box { 
-    background: #1e293b; 
-    padding: 12px; 
-    border-radius: 6px; 
-    color: #f1f5f9; 
-    font-family: monospace; 
+  .sim-math-box {
+    color: #f1f5f9;
+    font-family: monospace;
+    overflow-x: auto;
+  }
+  .sim-math-box math[display="block"] {
+    margin-left: 0;
+    margin-right: 0;
+    text-align: left;
+  }
+  .branch-list { display: flex; flex-direction: column; gap: 8px; }
+  .branch-box {
+    padding: 10px 14px;
+    border-radius: 6px;
+    border: 1px solid #1e293b;
+    background: #0a0f1a;
+    opacity: 0.4;
+  }
+  .branch-box.active {
+    border-color: #38bdf8;
+    background: #071624;
+    opacity: 1;
+  }
+  .branch-box math {
+    display: block;
+    text-align: left;
+    margin: 0;
   }
 </style>
 
@@ -561,7 +582,7 @@
       cppError: '',
 
       simInputs: {
-        kelembapanTanah: 20,
+        kelembapanTanah: 25,
         suhuUdara: 32,
         kelembapanUdara: 20,
         curahHujan: 0.5,
@@ -705,71 +726,115 @@
 
       runSimulation() {
         this.simulationSteps = [];
-        
-        // 1. FUZZIFICATION STEP
+
+        // 1. FUZZIFICATION — one step per fuzzy set; each branch gets its own box
         this.inputKeys.forEach(key => {
           const val = this.simInputs[key];
-          
+
           this.config[key].sets.forEach(set => {
             const mu = this.calculateMu(set, val);
             const isTri = set.fn === 'segitiga';
 
-            // Helper to wrap fractions in perfectly tagged padded MathML
-            const createFraction = (numHtml, denHtml) => `
-              <mfrac mathsize="1.5em">
-                <mpadded height="1.2em" depth="0.4em"><mrow>${numHtml}</mrow></mpadded>
-                <mpadded height="1.2em" depth="0.4em"><mrow>${denHtml}</mrow></mpadded>
-              </mfrac>`;
+            // mpadded for readability — same as original
+            const frac = (n, d) => `<mfrac mathsize="1.5em"><mpadded height="1.2em" depth="0.4em"><mrow>${n}</mrow></mpadded><mpadded height="1.2em" depth="0.4em"><mrow>${d}</mrow></mpadded></mfrac>`;
+            const mn  = v => `<mn>${v}</mn>`;
+            const mi  = v => `<mi>${v}</mi>`;
+            const mo  = v => `<mo>${v}</mo>`;
+            // Use non-breaking space so MathML renderers don't strip the gap
+            const NBSP = ' ';
+            const jika = `<mtext>, jika${NBSP}</mtext>`;
+            const atau = `<mtext>${NBSP}atau${NBSP}</mtext>`;
+            const muEq = `${mi('&mu;')}${mo('=')}`;
 
-            // Define formula structure based on logic using explicit MathML elements
-            let formula = "<mn>1</mn>"; 
+            // arithRows: shown only for the active box; each is one <mtr>
+            const branchBox = (active, formulaRow, calcRow, arithRows) => {
+              const mark = active ? '&#x2713;' : '&#x274C;';
+              const extra = (active && arithRows)
+                ? arithRows.map(r => `<mtr><mtd>${r}</mtd></mtr>`).join('')
+                : '';
+              return `<div class="branch-box ${active ? 'active' : ''}">
+                <math display="block">
+                  <mtable columnalign="left" rowspacing="0.6em">
+                    <mtr><mtd>${formulaRow}</mtd></mtr>
+                    <mtr><mtd>${calcRow}<mo>${mark}</mo></mtd></mtr>
+                    ${extra}
+                  </mtable>
+                </math>
+              </div>`;
+            };
+
+            let boxes = '';
 
             if (isTri) {
-                formula = (val < set.b) 
-                    ? createFraction("<mi>x</mi><mo>&minus;</mo><mi>a</mi>", "<mi>b</mi><mo>&minus;</mo><mi>a</mi>") 
-                    : createFraction("<mi>c</mi><mo>&minus;</mo><mi>x</mi>", "<mi>c</mi><mo>&minus;</mo><mi>b</mi>");
+              const c1 = val <= set.a || val >= set.c;
+              const c2 = val > set.a && val <= set.b;
+              const c3 = val > set.b && val < set.c;
+
+              // Branch 1 — zero
+              boxes += branchBox(c1,
+                `${mn(0)}${jika}${mi('x')}${mo('&le;')}${mi('a')}${atau}${mi('x')}${mo('&ge;')}${mi('c')}`,
+                `${mn(0)}${jika}${mn(val)}${mo('&le;')}${mn(set.a)}${atau}${mn(val)}${mo('&ge;')}${mn(set.c)}`,
+                null);
+
+              // Branch 2 — left slope (x−a)/(b−a)
+              const f2g   = frac(`${mi('x')}${mo('&minus;')}${mi('a')}`, `${mi('b')}${mo('&minus;')}${mi('a')}`);
+              const f2sub = frac(`${mn(val)}${mo('&minus;')}${mn(set.a)}`, `${mn(set.b)}${mo('&minus;')}${mn(set.a)}`);
+              const f2num = frac(mn(+(val - set.a)), mn(+(set.b - set.a)));
+              boxes += branchBox(c2,
+                `${f2g}${jika}${mi('a')}${mo('&lt;')}${mi('x')}${mo('&le;')}${mi('b')}`,
+                `${f2sub}${jika}${mn(set.a)}${mo('&lt;')}${mn(val)}${mo('&le;')}${mn(set.b)}`,
+                [`${muEq}${f2sub}`, `${muEq}${f2num}`, `${muEq}${mn(mu.toFixed(3))}`]);
+
+              // Branch 3 — right slope (c−x)/(c−b)
+              const f3g   = frac(`${mi('c')}${mo('&minus;')}${mi('x')}`, `${mi('c')}${mo('&minus;')}${mi('b')}`);
+              const f3sub = frac(`${mn(set.c)}${mo('&minus;')}${mn(val)}`, `${mn(set.c)}${mo('&minus;')}${mn(set.b)}`);
+              const f3num = frac(mn(+(set.c - val)), mn(+(set.c - set.b)));
+              boxes += branchBox(c3,
+                `${f3g}${jika}${mi('b')}${mo('&lt;')}${mi('x')}${mo('&lt;')}${mi('c')}`,
+                `${f3sub}${jika}${mn(set.b)}${mo('&lt;')}${mn(val)}${mo('&lt;')}${mn(set.c)}`,
+                [`${muEq}${f3sub}`, `${muEq}${f3num}`, `${muEq}${mn(mu.toFixed(3))}`]);
+
             } else if (set.fn === 'trapesium') {
-                formula = (val < set.b) 
-                    ? createFraction("<mi>x</mi><mo>&minus;</mo><mi>a</mi>", "<mi>b</mi><mo>&minus;</mo><mi>a</mi>") 
-                    : (val > set.c 
-                        ? createFraction("<mi>d</mi><mo>&minus;</mo><mi>x</mi>", "<mi>d</mi><mo>&minus;</mo><mi>c</mi>") 
-                        : "<mn>1</mn>");
+              const c1 = val <= set.a || val >= set.d;
+              const c2 = val > set.a && val <= set.b;
+              const c3 = val > set.b && val <= set.c;
+              const c4 = val > set.c && val < set.d;
+
+              // Branch 1 — zero
+              boxes += branchBox(c1,
+                `${mn(0)}${jika}${mi('x')}${mo('&le;')}${mi('a')}${atau}${mi('x')}${mo('&ge;')}${mi('d')}`,
+                `${mn(0)}${jika}${mn(val)}${mo('&le;')}${mn(set.a)}${atau}${mn(val)}${mo('&ge;')}${mn(set.d)}`,
+                null);
+
+              // Branch 2 — left slope (x−a)/(b−a)
+              const f2g   = frac(`${mi('x')}${mo('&minus;')}${mi('a')}`, `${mi('b')}${mo('&minus;')}${mi('a')}`);
+              const f2sub = frac(`${mn(val)}${mo('&minus;')}${mn(set.a)}`, `${mn(set.b)}${mo('&minus;')}${mn(set.a)}`);
+              const f2num = frac(mn(+(val - set.a)), mn(+(set.b - set.a)));
+              boxes += branchBox(c2,
+                `${f2g}${jika}${mi('a')}${mo('&lt;')}${mi('x')}${mo('&le;')}${mi('b')}`,
+                `${f2sub}${jika}${mn(set.a)}${mo('&lt;')}${mn(val)}${mo('&le;')}${mn(set.b)}`,
+                [`${muEq}${f2sub}`, `${muEq}${f2num}`, `${muEq}${mn(mu.toFixed(3))}`]);
+
+              // Branch 3 — flat top
+              boxes += branchBox(c3,
+                `${mn(1)}${jika}${mi('b')}${mo('&lt;')}${mi('x')}${mo('&le;')}${mi('c')}`,
+                `${mn(1)}${jika}${mn(set.b)}${mo('&lt;')}${mn(val)}${mo('&le;')}${mn(set.c)}`,
+                null);
+
+              // Branch 4 — right slope (d−x)/(d−c)
+              const f4g   = frac(`${mi('d')}${mo('&minus;')}${mi('x')}`, `${mi('d')}${mo('&minus;')}${mi('c')}`);
+              const f4sub = frac(`${mn(set.d)}${mo('&minus;')}${mn(val)}`, `${mn(set.d)}${mo('&minus;')}${mn(set.c)}`);
+              const f4num = frac(mn(+(set.d - val)), mn(+(set.d - set.c)));
+              boxes += branchBox(c4,
+                `${f4g}${jika}${mi('c')}${mo('&lt;')}${mi('x')}${mo('&lt;')}${mi('d')}`,
+                `${f4sub}${jika}${mn(set.c)}${mo('&lt;')}${mn(val)}${mo('&lt;')}${mn(set.d)}`,
+                [`${muEq}${f4sub}`, `${muEq}${f4num}`, `${muEq}${mn(mu.toFixed(3))}`]);
             }
-
-            // Generate the calculation row by mirroring the logic dynamically with numbers
-            let calculation = "<mn>1</mn>";
-
-            if (isTri) {
-                calculation = (val < set.b)
-                    ? createFraction(`<mn>${val}</mn><mo>&minus;</mo><mn>${set.a}</mn>`, `<mn>${set.b}</mn><mo>&minus;</mo><mn>${set.a}</mn>`)
-                    : createFraction(`<mn>${set.c}</mn><mo>&minus;</mo><mn>${val}</mn>`, `<mn>${set.c}</mn><mo>&minus;</mo><mn>${set.b}</mn>`);
-            } else if (set.fn === 'trapesium') {
-                calculation = (val < set.b)
-                    ? createFraction(`<mn>${val}</mn><mo>&minus;</mo><mn>${set.a}</mn>`, `<mn>${set.b}</mn><mo>&minus;</mo><mn>${set.a}</mn>`)
-                    : (val > set.c 
-                        ? createFraction(`<mn>${set.d}</mn><mo>&minus;</mo><mn>${val}</mn>`, `<mn>${set.d}</mn><mo>&minus;</mo><mn>${set.c}</mn>`)
-                        : "<mn>1</mn>");
-            }
-
-            console.log(`Debug for ${set.label}:`, formula);
 
             this.simulationSteps.push({
               title: `Fuzzifikasi: ${this.config[key].label} (${set.label})`,
-              description: `Menghitung derajat keanggotaan dengan fungsi ${set.fn}`,
-              equation: `
-              <math display="block">
-                <mtable columnalign="left">
-                  <mtr>
-                    <mtd><mi>&mu;</mi><mo>(</mo><mi>x</mi><mo>)</mo><mo>=</mo>${formula}</mtd>
-                  </mtr>
-                  <mtr>
-                    <mtd><mi>&mu;</mi><mo>(</mo><mn>${val}</mn><mo>)</mo><mo>=</mo>${calculation}</mtd>
-                  </mtr>
-                  <mtr>
-                    <mtd><mi>&mu;</mi><mo>=</mo><mn>${mu.toFixed(3)}</mn></mtd>
-                  </mtr>
-                </mtable>
-              </math>`
+              description: `x = ${val} | ${set.fn} | a=${set.a}, b=${set.b}, c=${set.c}${set.fn === 'trapesium' ? ', d='+set.d : ''} → μ = ${mu.toFixed(3)}`,
+              equation: `<div class="branch-list">${boxes}</div>`,
             });
           });
         });
