@@ -235,31 +235,6 @@
   }
   .code-block pre { margin: 0; }
   .code-block pre code.hljs { border-radius: 10px; font-size: 0.82rem; line-height: 1.55; }
-
-  /* --- Simulasi View Styles --- */
-  .sim-container { padding: 24px; }
-  .sim-grid { 
-    display: grid; 
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); 
-    gap: 16px; 
-    margin-bottom: 20px; 
-  }
-  .sim-step-list { margin-top: 32px; display: flex; flex-direction: column; gap: 16px; }
-  .sim-step-card { 
-    background: #0f172a; 
-    border: 1px solid #334155; 
-    padding: 16px; 
-    border-radius: 8px; 
-  }
-  .sim-step-title { color: #38bdf8; font-weight: bold; font-size: 1rem; margin-bottom: 4px; }
-  .sim-step-desc { color: #94a3b8; font-size: 0.85rem; margin-bottom: 12px; }
-  .sim-math-box { 
-    background: #1e293b; 
-    padding: 12px; 
-    border-radius: 6px; 
-    color: #f1f5f9; 
-    font-family: monospace; 
-  }
 </style>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
@@ -289,14 +264,10 @@
       </button>
     </template>
 
-    <div class="cfg-sidebar-title" style="margin-top:8px">Aturan & Simulasi</div>
+    <div class="cfg-sidebar-title" style="margin-top:8px">Aturan</div>
     <button class="cfg-nav-item" :class="{ active: selected === 'aturan' }" @click="selectInput('aturan')">
       <span class="cfg-nav-label">Aturan Inferensi</span>
       <span class="cfg-nav-unit" x-text="'(' + rules.length + ' aturan)'"></span>
-    </button>
-
-    <button class="cfg-nav-item" :class="{ active: selected === 'simulasi' }" @click="selectInput('simulasi')">
-      <span>Simulasi Inferensi</span>
     </button>
 
     <div class="cfg-sidebar-title" style="margin-top:8px">Export</div>
@@ -314,7 +285,7 @@
     <a href="/" class="cfg-back">&larr; Beranda</a>
 
     <!-- Config view -->
-    <div x-show="!isRulesView() && !isCppView() && !isSimulasiView()">
+    <div x-show="!isRulesView() && !isCppView()">
       <div class="cfg-main-header">
         <h1 x-text="config[selected] ? config[selected].label : ''"></h1>
         <span class="cfg-range"
@@ -445,38 +416,6 @@
       <button class="btn-add-rule" @click="addRule()">+ Tambah Aturan</button>
     </div>
 
-    <div x-show="isSimulasiView()" class="sim-container">
-      <div class="cfg-main-header">
-        <h1>Simulasi View</h1>
-      </div>
-
-      <div class="sim-grid">
-        <template x-for="key in inputKeys" :key="key">
-          <div class="set-col">
-            <div class="form-group">
-              <label x-text="config[key].label"></label>
-              <input type="number" 
-                    x-model.number="simInputs[key]" 
-                    :placeholder="config[key].unit">
-            </div>
-          </div>
-        </template>
-      </div>
-      
-      <button class="btn-add-rule" @click="runSimulation()">Jalankan Simulasi</button>
-
-      <div class="sim-step-list" x-show="simulationSteps.length">
-        <template x-for="(step, index) in simulationSteps" :key="index">
-          <div class="sim-step-card">
-            <h3 class="sim-step-title" x-text="(index + 1) + '. ' + step.title"></h3>
-            <p class="sim-step-desc" x-text="step.description"></p>
-            
-            <div class="sim-math-box" x-html="step.equation"></div>
-          </div>
-        </template>
-      </div>
-    </div>
-
     <!-- C++ export view -->
     <div x-show="isCppView()">
       <div class="cfg-main-header">
@@ -560,22 +499,12 @@
       cppLoading: false,
       cppError: '',
 
-      simInputs: {
-        kelembapanTanah: 20,
-        suhuUdara: 32,
-        kelembapanUdara: 20,
-        curahHujan: 0.5,
-      },
-      simulationSteps: [],
-
       allKeys() {
         return this.inputKeys.concat(this.outputKeys);
       },
 
       isRulesView() { return this.selected === 'aturan'; },
       isCppView()   { return this.selected === 'cpp'; },
-
-      isSimulasiView() { return this.selected === 'simulasi'; },
 
       getRange(key) {
         var sets = this.config[key].sets;
@@ -616,7 +545,7 @@
         }
 
         var param = new URLSearchParams(window.location.search).get('input');
-        if (param && (this.allKeys().includes(param) || param === 'aturan' || param === 'cpp' || param === 'simulasi')) this.selected = param;
+        if (param && (this.allKeys().includes(param) || param === 'aturan' || param === 'cpp')) this.selected = param;
 
         var self = this;
         window.addEventListener('popstate', function() {
@@ -703,120 +632,8 @@
         });
       },
 
-      runSimulation() {
-        this.simulationSteps = [];
-        
-        // 1. FUZZIFICATION STEP
-        this.inputKeys.forEach(key => {
-          const val = this.simInputs[key];
-          
-          this.config[key].sets.forEach(set => {
-            const mu = this.calculateMu(set, val);
-            const isTri = set.fn === 'segitiga';
-
-            // Helper to wrap fractions in perfectly tagged padded MathML
-            const createFraction = (numHtml, denHtml) => `
-              <mfrac mathsize="1.5em">
-                <mpadded height="1.2em" depth="0.4em"><mrow>${numHtml}</mrow></mpadded>
-                <mpadded height="1.2em" depth="0.4em"><mrow>${denHtml}</mrow></mpadded>
-              </mfrac>`;
-
-            // Define formula structure based on logic using explicit MathML elements
-            let formula = "<mn>1</mn>"; 
-
-            if (isTri) {
-                formula = (val < set.b) 
-                    ? createFraction("<mi>x</mi><mo>&minus;</mo><mi>a</mi>", "<mi>b</mi><mo>&minus;</mo><mi>a</mi>") 
-                    : createFraction("<mi>c</mi><mo>&minus;</mo><mi>x</mi>", "<mi>c</mi><mo>&minus;</mo><mi>b</mi>");
-            } else if (set.fn === 'trapesium') {
-                formula = (val < set.b) 
-                    ? createFraction("<mi>x</mi><mo>&minus;</mo><mi>a</mi>", "<mi>b</mi><mo>&minus;</mo><mi>a</mi>") 
-                    : (val > set.c 
-                        ? createFraction("<mi>d</mi><mo>&minus;</mo><mi>x</mi>", "<mi>d</mi><mo>&minus;</mo><mi>c</mi>") 
-                        : "<mn>1</mn>");
-            }
-
-            // Generate the calculation row by mirroring the logic dynamically with numbers
-            let calculation = "<mn>1</mn>";
-
-            if (isTri) {
-                calculation = (val < set.b)
-                    ? createFraction(`<mn>${val}</mn><mo>&minus;</mo><mn>${set.a}</mn>`, `<mn>${set.b}</mn><mo>&minus;</mo><mn>${set.a}</mn>`)
-                    : createFraction(`<mn>${set.c}</mn><mo>&minus;</mo><mn>${val}</mn>`, `<mn>${set.c}</mn><mo>&minus;</mo><mn>${set.b}</mn>`);
-            } else if (set.fn === 'trapesium') {
-                calculation = (val < set.b)
-                    ? createFraction(`<mn>${val}</mn><mo>&minus;</mo><mn>${set.a}</mn>`, `<mn>${set.b}</mn><mo>&minus;</mo><mn>${set.a}</mn>`)
-                    : (val > set.c 
-                        ? createFraction(`<mn>${set.d}</mn><mo>&minus;</mo><mn>${val}</mn>`, `<mn>${set.d}</mn><mo>&minus;</mo><mn>${set.c}</mn>`)
-                        : "<mn>1</mn>");
-            }
-
-            console.log(`Debug for ${set.label}:`, formula);
-
-            this.simulationSteps.push({
-              title: `Fuzzifikasi: ${this.config[key].label} (${set.label})`,
-              description: `Menghitung derajat keanggotaan dengan fungsi ${set.fn}`,
-              equation: `
-              <math display="block">
-                <mtable columnalign="left">
-                  <mtr>
-                    <mtd><mi>&mu;</mi><mo>(</mo><mi>x</mi><mo>)</mo><mo>=</mo>${formula}</mtd>
-                  </mtr>
-                  <mtr>
-                    <mtd><mi>&mu;</mi><mo>(</mo><mn>${val}</mn><mo>)</mo><mo>=</mo>${calculation}</mtd>
-                  </mtr>
-                  <mtr>
-                    <mtd><mi>&mu;</mi><mo>=</mo><mn>${mu.toFixed(3)}</mn></mtd>
-                  </mtr>
-                </mtable>
-              </math>`
-            });
-          });
-        });
-
-        // 2. RULE EVALUATION STEP
-        this.simulationSteps.push({
-          title: "Evaluasi Aturan",
-          description: "Mencari nilai MIN dari setiap kondisi (AND operator)"
-        });
-
-        // 3. AGGREGATION STEP
-        this.simulationSteps.push({
-          title: "Agregasi",
-          description: "Mengambil nilai MAX dari aturan yang aktif"
-        });
-
-        // 4. DEFUZZIFICATION STEP
-        this.simulationSteps.push({
-          title: "Defuzzifikasi (Centroid)",
-          description: "Menghitung pusat massa dari area hasil agregasi"
-        });
-
-        console.log('runSimulation', this.simulationSteps);
-      },
-
-      calculateMu(set, x) {
-        const a = set.a, b = set.b, c = set.c, d = set.d;
-        
-        if (set.fn === 'segitiga') {
-          if (x <= a || x >= c) return 0;
-          if (x === b) return 1;
-          if (x < b) return (x - a) / (b - a);
-          return (c - x) / (c - b);
-        } 
-        
-        // Logic for trapesium
-        if (set.fn === 'trapesium') {
-          if (x >= b && x <= c) return 1;
-          if (x <= a || x >= d) return 0;
-          if (x < b) return (x - a) / (b - a);
-          return (d - x) / (d - c);
-        }
-        return 0;
-      },
-
       renderChart() {
-        if (this.isRulesView() || this.isCppView() || this.isSimulasiView()) return;
+        if (this.isRulesView() || this.isCppView()) return;
         var inp = this.config[this.selected];
         var range = this.getRange(this.selected);
         var el = document.getElementById('chart-cfg-combined');
