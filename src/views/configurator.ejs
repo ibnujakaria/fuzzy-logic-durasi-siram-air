@@ -245,14 +245,25 @@
     margin-bottom: 20px; 
   }
   .sim-step-list { margin-top: 32px; display: flex; flex-direction: column; gap: 16px; }
-  .sim-step-card { 
-    background: #0f172a; 
-    border: 1px solid #334155; 
-    padding: 16px; 
-    border-radius: 8px; 
+  .sim-step-card {
+    background: #0f172a;
+    border: 1px solid #334155;
+    padding: 16px;
+    border-radius: 8px;
   }
+  .sim-step-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .sim-step-header:hover .sim-step-title { color: #7dd3fc; }
   .sim-step-title { color: #38bdf8; font-weight: bold; font-size: 1rem; margin-bottom: 4px; }
-  .sim-step-desc { color: #94a3b8; font-size: 0.85rem; margin-bottom: 12px; }
+  .sim-step-desc { color: #94a3b8; font-size: 0.85rem; }
+  .sim-collapse-icon { color: #475569; font-size: 0.75rem; flex-shrink: 0; padding-top: 4px; }
+  .sim-math-box { margin-top: 12px; }
   .sim-math-box {
     color: #f1f5f9;
     font-family: monospace;
@@ -489,10 +500,14 @@
       <div class="sim-step-list" x-show="simulationSteps.length">
         <template x-for="(step, index) in simulationSteps" :key="index">
           <div class="sim-step-card">
-            <h3 class="sim-step-title" x-text="(index + 1) + '. ' + step.title"></h3>
-            <p class="sim-step-desc" x-text="step.description"></p>
-            
-            <div class="sim-math-box" x-html="step.equation"></div>
+            <div class="sim-step-header" @click="step.open = !step.open">
+              <div>
+                <h3 class="sim-step-title" x-text="(index + 1) + '. ' + step.title"></h3>
+                <p class="sim-step-desc" x-text="step.description"></p>
+              </div>
+              <span class="sim-collapse-icon" x-text="step.open ? '▲' : '▼'"></span>
+            </div>
+            <div class="sim-math-box" x-show="step.open" x-html="step.equation"></div>
           </div>
         </template>
       </div>
@@ -835,6 +850,7 @@
               title: `Fuzzifikasi: ${this.config[key].label} (${set.label})`,
               description: `x = ${val} | ${set.fn} | a=${set.a}, b=${set.b}, c=${set.c}${set.fn === 'trapesium' ? ', d='+set.d : ''} → μ = ${mu.toFixed(3)}`,
               equation: `<div class="branch-list">${boxes}</div>`,
+              open: mu > 0,
             });
           });
         });
@@ -842,19 +858,22 @@
         // 2. RULE EVALUATION STEP
         this.simulationSteps.push({
           title: "Evaluasi Aturan",
-          description: "Mencari nilai MIN dari setiap kondisi (AND operator)"
+          description: "Mencari nilai MIN dari setiap kondisi (AND operator)",
+          open: true,
         });
 
         // 3. AGGREGATION STEP
         this.simulationSteps.push({
           title: "Agregasi",
-          description: "Mengambil nilai MAX dari aturan yang aktif"
+          description: "Mengambil nilai MAX dari aturan yang aktif",
+          open: true,
         });
 
         // 4. DEFUZZIFICATION STEP
         this.simulationSteps.push({
           title: "Defuzzifikasi (Centroid)",
-          description: "Menghitung pusat massa dari area hasil agregasi"
+          description: "Menghitung pusat massa dari area hasil agregasi",
+          open: true,
         });
 
         console.log('runSimulation', this.simulationSteps);
