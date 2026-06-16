@@ -292,6 +292,24 @@
     text-align: left;
     margin: 0;
   }
+  .sim-step-card.fired { border-color: #22c55e; }
+  .rule-cond-box {
+    padding: 10px 14px;
+    border-radius: 6px;
+    border: 1px solid #334155;
+    background: #111827;
+  }
+  .rule-alpha-box {
+    padding: 10px 14px;
+    border-radius: 6px;
+    border: 1px solid #22d3ee;
+    background: #061a1f;
+  }
+  .rule-cond-box math, .rule-alpha-box math {
+    display: block;
+    text-align: left;
+    margin: 0;
+  }
 </style>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
@@ -499,7 +517,7 @@
 
       <div class="sim-step-list" x-show="simulationSteps.length">
         <template x-for="(step, index) in simulationSteps" :key="index">
-          <div class="sim-step-card">
+          <div class="sim-step-card" :class="{ fired: step.fired }">
             <div class="sim-step-header" @click="step.open = !step.open">
               <div>
                 <h3 class="sim-step-title" x-text="(index + 1) + '. ' + step.title"></h3>
@@ -597,10 +615,10 @@
       cppError: '',
 
       simInputs: {
-        kelembapanTanah: 25,
-        suhuUdara: 32,
-        kelembapanUdara: 20,
-        curahHujan: 0.5,
+        kelembapanTanah: 20,
+        suhuUdara: 34,
+        kelembapanUdara: 22,
+        curahHujan: 0.1,
       },
       simulationSteps: [],
 
@@ -742,6 +760,16 @@
       runSimulation() {
         this.simulationSteps = [];
 
+        // Pre-compute all μ values so rule evaluation can look them up
+        const muMap = {};
+        this.inputKeys.forEach(key => {
+          muMap[key] = {};
+          const val = this.simInputs[key];
+          this.config[key].sets.forEach(set => {
+            muMap[key][set.key] = this.calculateMu(set, val);
+          });
+        });
+
         // 1. FUZZIFICATION — one step per fuzzy set; each branch gets its own box
         this.inputKeys.forEach(key => {
           const val = this.simInputs[key];
@@ -855,11 +883,66 @@
           });
         });
 
-        // 2. RULE EVALUATION STEP
-        this.simulationSteps.push({
-          title: "Evaluasi Aturan",
-          description: "Mencari nilai MIN dari setiap kondisi (AND operator)",
-          open: true,
+        // 2. RULE EVALUATION — one card per rule
+        const mn  = v => `<mn>${v}</mn>`;
+        const mi  = v => `<mi>${v}</mi>`;
+        const mo  = v => `<mo>${v}</mo>`;
+        const msub = (base, sub) => `<msub>${base}<mtext>${sub}</mtext></msub>`;
+        const outputKey = this.outputKeys[0];
+
+        this.rules.forEach((rule, idx) => {
+          // Collect active (non-wildcard) conditions with their μ values
+          const conditions = this.inputKeys
+            .filter(key => rule.conditions[key] && rule.conditions[key] !== '*')
+            .map(key => {
+              const setKey = rule.conditions[key];
+              const set    = this.config[key].sets.find(s => s.key === setKey);
+              const mu     = (muMap[key] && muMap[key][setKey] != null) ? muMap[key][setKey] : 0;
+              return { varLabel: this.config[key].label, val: this.simInputs[key], setLabel: set ? set.label : setKey, mu };
+            });
+
+          const alpha = conditions.length > 0 ? Math.min(...conditions.map(c => c.mu)) : 0;
+          const outSet = this.config[outputKey].sets.find(s => s.key === rule.output);
+          const outLabel = outSet ? outSet.label : rule.output;
+
+          // One box per condition: general row + substituted+result row
+          const condBoxes = conditions.map(c => `
+            <div class="rule-cond-box">
+              <math display="block">
+                <mtable columnalign="left" rowspacing="0.5em">
+                  <mtr><mtd>${msub(mi('&mu;'), c.setLabel)}<mo>(</mo><mtext>${c.varLabel}</mtext><mo>)</mo></mtd></mtr>
+                  <mtr><mtd>
+                    ${msub(mi('&mu;'), c.setLabel)}<mo>(</mo>${mn(c.val)}<mo>)</mo>
+                    <mo>=</mo>${mn(c.mu.toFixed(3))}
+                  </mtd></mtr>
+                </mtable>
+              </math>
+            </div>`).join('');
+
+          // MIN box: general (μ names) → numeric → scalar result
+          const muNamed = conditions.map(c => msub(mi('&mu;'), c.setLabel)).join(`${mo(',')}<mspace width="0.2em"/>`);
+          const muNums  = conditions.map(c => mn(c.mu.toFixed(3))).join(`${mo(',')}<mspace width="0.2em"/>`);
+          const alphaBox = `
+            <div class="rule-alpha-box">
+              <math display="block">
+                <mtable columnalign="left" rowspacing="0.5em">
+                  <mtr><mtd><mi>α</mi><mo>=</mo><mtext>MIN</mtext><mo>(</mo>${muNamed}<mo>)</mo></mtd></mtr>
+                  <mtr><mtd><mi>α</mi><mo>=</mo><mtext>MIN</mtext><mo>(</mo>${muNums}<mo>)</mo></mtd></mtr>
+                  <mtr><mtd><mi>α</mi><mo>=</mo>${mn(alpha.toFixed(3))}</mtd></mtr>
+                </mtable>
+              </math>
+            </div>`;
+
+          const ifPart   = conditions.map(c => `${c.varLabel} = ${c.setLabel}`).join(' DAN ');
+          const thenPart = `${this.config[outputKey].label} = ${outLabel}`;
+
+          this.simulationSteps.push({
+            title: `Evaluasi Aturan ke-${idx + 1}`,
+            description: `IF ${ifPart} THEN ${thenPart} → α = ${alpha.toFixed(3)}`,
+            equation: `<div class="branch-list">${condBoxes}${alphaBox}</div>`,
+            open: alpha > 0,
+            fired: alpha > 0,
+          });
         });
 
         // 3. AGGREGATION STEP
