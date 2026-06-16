@@ -253,16 +253,15 @@
   }
   .sim-step-header {
     display: flex;
-    justify-content: space-between;
     align-items: flex-start;
-    gap: 12px;
+    gap: 8px;
     cursor: pointer;
     user-select: none;
   }
   .sim-step-header:hover .sim-step-title { color: #7dd3fc; }
   .sim-step-title { color: #38bdf8; font-weight: bold; font-size: 1rem; margin-bottom: 4px; }
   .sim-step-desc { color: #94a3b8; font-size: 0.85rem; }
-  .sim-collapse-icon { color: #475569; font-size: 0.75rem; flex-shrink: 0; padding-top: 4px; }
+  .sim-collapse-icon { color: #475569; font-size: 0.85rem; flex-shrink: 0; padding-top: 2px; }
   .sim-math-box { margin-top: 12px; }
   .sim-math-box {
     color: #f1f5f9;
@@ -305,6 +304,32 @@
     border: 1px solid #22d3ee;
     background: #061a1f;
   }
+  .defuzz-box {
+    padding: 16px 20px;
+    border-radius: 6px;
+    border: 1px solid #334155;
+    background: #111827;
+  }
+  .defuzz-result-box {
+    padding: 16px 20px;
+    border-radius: 6px;
+    border: 1px solid #22d3ee;
+    background: #061a1f;
+  }
+  .defuzz-box math, .defuzz-result-box math {
+    display: block;
+    text-align: left;
+    margin: 0;
+  }
+  .defuzz-row { margin-bottom: 16px; }
+  .defuzz-row:last-child { margin-bottom: 0; }
+  .defuzz-note { color: #94a3b8; font-size: 0.82rem; margin-top: 6px; }
+  .defuzz-sample-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-top: 4px; }
+  .defuzz-sample-table th { color: #64748b; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px; padding: 4px 8px; border-bottom: 1px solid #1e293b; text-align: left; }
+  .defuzz-sample-table td { padding: 5px 8px; border-bottom: 1px solid #0f172a; color: #cbd5e1; font-family: monospace; }
+  .defuzz-sample-table tr.nonzero td { color: #7dd3fc; }
+  .defuzz-sample-table tr.ellipsis td { color: #475569; text-align: center; }
+  .defuzz-sample-table tfoot td { color: #94a3b8; font-size: 0.78rem; padding-top: 8px; border-top: 1px solid #334155; border-bottom: none; }
   .rule-cond-box math, .rule-alpha-box math {
     display: block;
     text-align: left;
@@ -519,11 +544,11 @@
         <template x-for="(step, index) in simulationSteps" :key="index">
           <div class="sim-step-card" :class="{ fired: step.fired }">
             <div class="sim-step-header" @click="step.open = !step.open">
+              <span class="sim-collapse-icon" x-text="step.open ? '▾' : '▸'"></span>
               <div>
                 <h3 class="sim-step-title" x-text="(index + 1) + '. ' + step.title"></h3>
                 <p class="sim-step-desc" x-text="step.description"></p>
               </div>
-              <span class="sim-collapse-icon" x-text="step.open ? '▲' : '▼'"></span>
             </div>
             <div class="sim-math-box" x-show="step.open" x-html="step.equation"></div>
           </div>
@@ -552,6 +577,8 @@
 </div>
 
 <script>
+  var LS_PREFIX = 'fuzzy_v1_';
+
   function configuratorApp() {
     var DEFAULTS = {
       kelembapanTanah: {
@@ -599,9 +626,9 @@
     };
 
     var DEFAULT_RULES = [
-      { id: 1, conditions: { kelembapanTanah: 'basah',  suhuUdara: 'dingin', kelembapanUdara: 'tinggi', curahHujan: 'lebat'     }, output: 'nol'            },
-      { id: 2, conditions: { kelembapanTanah: 'lembap', suhuUdara: 'hangat', kelembapanUdara: 'sedang', curahHujan: 'ringan'    }, output: 'sedang'         },
-      { id: 3, conditions: { kelembapanTanah: 'kering', suhuUdara: 'panas',  kelembapanUdara: 'rendah', curahHujan: 'tidak_ada' }, output: 'sangat_panjang' },
+      { id: 1, conditions: { kelembapanTanah: 'kering', suhuUdara: 'hangat', kelembapanUdara: 'rendah', curahHujan: 'tidak_ada' }, output: 'sangat_panjang' },
+      { id: 2, conditions: { kelembapanTanah: 'kering', suhuUdara: 'hangat', kelembapanUdara: 'sedang', curahHujan: 'tidak_ada' }, output: 'panjang'        },
+      { id: 3, conditions: { kelembapanTanah: 'kering', suhuUdara: 'hangat', kelembapanUdara: 'rendah', curahHujan: 'ringan'    }, output: 'panjang'        },
     ];
 
     return {
@@ -614,11 +641,13 @@
       cppLoading: false,
       cppError: '',
 
+      // Values chosen so each variable sits in the overlap of two fuzzy sets,
+      // making multiple fuzzification rows non-zero and all 3 rules fire.
       simInputs: {
-        kelembapanTanah: 20,
-        suhuUdara: 34,
-        kelembapanUdara: 22,
-        curahHujan: 0.1,
+        kelembapanTanah: 35,   // overlap: kering(0.25) + lembap(0.25)
+        suhuUdara: 24,         // overlap: dingin(0.14) + hangat(0.33)
+        kelembapanUdara: 40,   // overlap: rendah(0.25) + sedang(0.25)
+        curahHujan: 0.4,       // overlap: tidak_ada(0.25) + ringan(0.08)
       },
       simulationSteps: [],
 
@@ -643,10 +672,10 @@
         var defaults = JSON.parse(JSON.stringify(DEFAULTS));
         var parsed = null;
         try {
-          var raw = localStorage.getItem('watering-configurator');
+          var raw = localStorage.getItem(LS_PREFIX + 'watering-configurator');
           if (raw) parsed = JSON.parse(raw);
         } catch (e) {
-          localStorage.removeItem('watering-configurator');
+          localStorage.removeItem(LS_PREFIX + 'watering-configurator');
         }
         var allKeys = Object.keys(defaults);
         this.config = {};
@@ -659,13 +688,13 @@
         }
 
         try {
-          var rawRules = localStorage.getItem('watering-rules');
+          var rawRules = localStorage.getItem(LS_PREFIX + 'watering-rules');
           var savedRules = rawRules ? JSON.parse(rawRules) : null;
           this.rules = (Array.isArray(savedRules) && savedRules.length > 0)
             ? savedRules
             : JSON.parse(JSON.stringify(DEFAULT_RULES));
         } catch (e) {
-          localStorage.removeItem('watering-rules');
+          localStorage.removeItem(LS_PREFIX + 'watering-rules');
           this.rules = JSON.parse(JSON.stringify(DEFAULT_RULES));
         }
 
@@ -702,7 +731,7 @@
       },
 
       save() {
-        localStorage.setItem('watering-configurator', JSON.stringify(this.config));
+        localStorage.setItem(LS_PREFIX + 'watering-configurator', JSON.stringify(this.config));
       },
 
       onParamChange() {
@@ -785,9 +814,10 @@
             const mo  = v => `<mo>${v}</mo>`;
             // Use non-breaking space so MathML renderers don't strip the gap
             const NBSP = ' ';
-            const jika = `<mtext>, jika${NBSP}</mtext>`;
+            const jika = `<mtext>jika${NBSP}</mtext>`;
             const atau = `<mtext>${NBSP}atau${NBSP}</mtext>`;
             const muEq = `${mi('&mu;')}${mo('=')}`;
+            const maka = `<mtext>${NBSP}maka nilai${NBSP}</mtext>${muEq}`;
 
             // arithRows: shown only for the active box; each is one <mtr>
             const branchBox = (active, formulaRow, calcRow, arithRows) => {
@@ -815,8 +845,8 @@
 
               // Branch 1 — zero
               boxes += branchBox(c1,
-                `${mn(0)}${jika}${mi('x')}${mo('&le;')}${mi('a')}${atau}${mi('x')}${mo('&ge;')}${mi('c')}`,
-                `${mn(0)}${jika}${mn(val)}${mo('&le;')}${mn(set.a)}${atau}${mn(val)}${mo('&ge;')}${mn(set.c)}`,
+                `${jika}${mi('x')}${mo('&le;')}${mi('a')}${atau}${mi('x')}${mo('&ge;')}${mi('c')}${maka}${mn(0)}`,
+                `${jika}${mn(val)}${mo('&le;')}${mn(set.a)}${atau}${mn(val)}${mo('&ge;')}${mn(set.c)}${maka}${mn(0)}`,
                 null);
 
               // Branch 2 — left slope (x−a)/(b−a)
@@ -824,8 +854,8 @@
               const f2sub = frac(`${mn(val)}${mo('&minus;')}${mn(set.a)}`, `${mn(set.b)}${mo('&minus;')}${mn(set.a)}`);
               const f2num = frac(mn(+(val - set.a)), mn(+(set.b - set.a)));
               boxes += branchBox(c2,
-                `${f2g}${jika}${mi('a')}${mo('&lt;')}${mi('x')}${mo('&le;')}${mi('b')}`,
-                `${f2sub}${jika}${mn(set.a)}${mo('&lt;')}${mn(val)}${mo('&le;')}${mn(set.b)}`,
+                `${jika}${mi('a')}${mo('&lt;')}${mi('x')}${mo('&le;')}${mi('b')}${maka}${f2g}`,
+                `${jika}${mn(set.a)}${mo('&lt;')}${mn(val)}${mo('&le;')}${mn(set.b)}${maka}${f2sub}`,
                 [`${muEq}${f2sub}`, `${muEq}${f2num}`, `${muEq}${mn(mu.toFixed(3))}`]);
 
               // Branch 3 — right slope (c−x)/(c−b)
@@ -833,8 +863,8 @@
               const f3sub = frac(`${mn(set.c)}${mo('&minus;')}${mn(val)}`, `${mn(set.c)}${mo('&minus;')}${mn(set.b)}`);
               const f3num = frac(mn(+(set.c - val)), mn(+(set.c - set.b)));
               boxes += branchBox(c3,
-                `${f3g}${jika}${mi('b')}${mo('&lt;')}${mi('x')}${mo('&lt;')}${mi('c')}`,
-                `${f3sub}${jika}${mn(set.b)}${mo('&lt;')}${mn(val)}${mo('&lt;')}${mn(set.c)}`,
+                `${jika}${mi('b')}${mo('&lt;')}${mi('x')}${mo('&lt;')}${mi('c')}${maka}${f3g}`,
+                `${jika}${mn(set.b)}${mo('&lt;')}${mn(val)}${mo('&lt;')}${mn(set.c)}${maka}${f3sub}`,
                 [`${muEq}${f3sub}`, `${muEq}${f3num}`, `${muEq}${mn(mu.toFixed(3))}`]);
 
             } else if (set.fn === 'trapesium') {
@@ -845,8 +875,8 @@
 
               // Branch 1 — zero
               boxes += branchBox(c1,
-                `${mn(0)}${jika}${mi('x')}${mo('&le;')}${mi('a')}${atau}${mi('x')}${mo('&ge;')}${mi('d')}`,
-                `${mn(0)}${jika}${mn(val)}${mo('&le;')}${mn(set.a)}${atau}${mn(val)}${mo('&ge;')}${mn(set.d)}`,
+                `${jika}${mi('x')}${mo('&le;')}${mi('a')}${atau}${mi('x')}${mo('&ge;')}${mi('d')}${maka}${mn(0)}`,
+                `${jika}${mn(val)}${mo('&le;')}${mn(set.a)}${atau}${mn(val)}${mo('&ge;')}${mn(set.d)}${maka}${mn(0)}`,
                 null);
 
               // Branch 2 — left slope (x−a)/(b−a)
@@ -854,14 +884,14 @@
               const f2sub = frac(`${mn(val)}${mo('&minus;')}${mn(set.a)}`, `${mn(set.b)}${mo('&minus;')}${mn(set.a)}`);
               const f2num = frac(mn(+(val - set.a)), mn(+(set.b - set.a)));
               boxes += branchBox(c2,
-                `${f2g}${jika}${mi('a')}${mo('&lt;')}${mi('x')}${mo('&le;')}${mi('b')}`,
-                `${f2sub}${jika}${mn(set.a)}${mo('&lt;')}${mn(val)}${mo('&le;')}${mn(set.b)}`,
+                `${jika}${mi('a')}${mo('&lt;')}${mi('x')}${mo('&le;')}${mi('b')}${maka}${f2g}`,
+                `${jika}${mn(set.a)}${mo('&lt;')}${mn(val)}${mo('&le;')}${mn(set.b)}${maka}${f2sub}`,
                 [`${muEq}${f2sub}`, `${muEq}${f2num}`, `${muEq}${mn(mu.toFixed(3))}`]);
 
               // Branch 3 — flat top
               boxes += branchBox(c3,
-                `${mn(1)}${jika}${mi('b')}${mo('&lt;')}${mi('x')}${mo('&le;')}${mi('c')}`,
-                `${mn(1)}${jika}${mn(set.b)}${mo('&lt;')}${mn(val)}${mo('&le;')}${mn(set.c)}`,
+                `${jika}${mi('b')}${mo('&lt;')}${mi('x')}${mo('&le;')}${mi('c')}${maka}${mn(1)}`,
+                `${jika}${mn(set.b)}${mo('&lt;')}${mn(val)}${mo('&le;')}${mn(set.c)}${maka}${mn(1)}`,
                 null);
 
               // Branch 4 — right slope (d−x)/(d−c)
@@ -869,8 +899,8 @@
               const f4sub = frac(`${mn(set.d)}${mo('&minus;')}${mn(val)}`, `${mn(set.d)}${mo('&minus;')}${mn(set.c)}`);
               const f4num = frac(mn(+(set.d - val)), mn(+(set.d - set.c)));
               boxes += branchBox(c4,
-                `${f4g}${jika}${mi('c')}${mo('&lt;')}${mi('x')}${mo('&lt;')}${mi('d')}`,
-                `${f4sub}${jika}${mn(set.c)}${mo('&lt;')}${mn(val)}${mo('&lt;')}${mn(set.d)}`,
+                `${jika}${mi('c')}${mo('&lt;')}${mi('x')}${mo('&lt;')}${mi('d')}${maka}${f4g}`,
+                `${jika}${mn(set.c)}${mo('&lt;')}${mn(val)}${mo('&lt;')}${mn(set.d)}${maka}${f4sub}`,
                 [`${muEq}${f4sub}`, `${muEq}${f4num}`, `${muEq}${mn(mu.toFixed(3))}`]);
             }
 
@@ -889,6 +919,9 @@
         const mo  = v => `<mo>${v}</mo>`;
         const msub = (base, sub) => `<msub>${base}<mtext>${sub}</mtext></msub>`;
         const outputKey = this.outputKeys[0];
+
+        // alphaResults collected here, consumed by aggregation below
+        const alphaResults = [];
 
         this.rules.forEach((rule, idx) => {
           // Collect active (non-wildcard) conditions with their μ values
@@ -936,6 +969,8 @@
           const ifPart   = conditions.map(c => `${c.varLabel} = ${c.setLabel}`).join(' DAN ');
           const thenPart = `${this.config[outputKey].label} = ${outLabel}`;
 
+          alphaResults.push({ ruleNum: idx + 1, ifPart, alpha, outputSetKey: rule.output });
+
           this.simulationSteps.push({
             title: `Evaluasi Aturan ke-${idx + 1}`,
             description: `IF ${ifPart} THEN ${thenPart} → α = ${alpha.toFixed(3)}`,
@@ -945,19 +980,152 @@
           });
         });
 
-        // 3. AGGREGATION STEP
-        this.simulationSteps.push({
-          title: "Agregasi",
-          description: "Mengambil nilai MAX dari aturan yang aktif",
-          open: true,
+        // 3. AGGREGATION — one card per output fuzzy set that has at least one rule
+        const aggregatedSets = []; // consumed by defuzzification below
+
+        this.config[outputKey].sets.forEach(outSet => {
+          const contributors = alphaResults.filter(r => r.outputSetKey === outSet.key);
+          if (contributors.length === 0) return;
+
+          const aggregatedMu = Math.max(...contributors.map(r => r.alpha));
+
+          // One box per contributing rule showing its rule number, IF clause, and α
+          const ruleBoxes = contributors.map(r => `
+            <div class="rule-cond-box">
+              <math display="block">
+                <mtable columnalign="left" rowspacing="0.5em">
+                  <mtr><mtd><mtext>Aturan ke-${r.ruleNum}:</mtext><mspace width="0.3em"/><mtext>${r.ifPart}</mtext></mtd></mtr>
+                  <mtr><mtd>
+                    <msub><mi>α</mi><mn>${r.ruleNum}</mn></msub>
+                    <mo>=</mo>${mn(r.alpha.toFixed(3))}
+                  </mtd></mtr>
+                </mtable>
+              </math>
+            </div>`).join('');
+
+          // MAX box: general → numeric → result
+          const alphaNamed = contributors.map(r => `<msub><mi>α</mi><mn>${r.ruleNum}</mn></msub>`).join(`${mo(',')}<mspace width="0.2em"/>`);
+          const alphaVals  = contributors.map(r => mn(r.alpha.toFixed(3))).join(`${mo(',')}<mspace width="0.2em"/>`);
+          const maxBox = `
+            <div class="rule-alpha-box">
+              <math display="block">
+                <mtable columnalign="left" rowspacing="0.5em">
+                  <mtr><mtd>${msub(mi('&mu;'), outSet.label)}<mo>=</mo><mtext>MAX</mtext><mo>(</mo>${alphaNamed}<mo>)</mo></mtd></mtr>
+                  <mtr><mtd>${msub(mi('&mu;'), outSet.label)}<mo>=</mo><mtext>MAX</mtext><mo>(</mo>${alphaVals}<mo>)</mo></mtd></mtr>
+                  <mtr><mtd>${msub(mi('&mu;'), outSet.label)}<mo>=</mo>${mn(aggregatedMu.toFixed(3))}</mtd></mtr>
+                </mtable>
+              </math>
+            </div>`;
+
+          aggregatedSets.push({ outSet, aggregatedMu });
+
+          this.simulationSteps.push({
+            title: `Agregasi: ${this.config[outputKey].label} (${outSet.label})`,
+            description: `${contributors.length} aturan → MAX(${contributors.map(r => r.alpha.toFixed(3)).join(', ')}) = ${aggregatedMu.toFixed(3)}`,
+            equation: `<div class="branch-list">${ruleBoxes}${maxBox}</div>`,
+            open: aggregatedMu > 0,
+            fired: aggregatedMu > 0,
+          });
         });
 
-        // 4. DEFUZZIFICATION STEP
-        this.simulationSteps.push({
-          title: "Defuzzifikasi (Centroid)",
-          description: "Menghitung pusat massa dari area hasil agregasi",
-          open: true,
-        });
+        // 4. DEFUZZIFICATION (Centroid)
+        const activeSets = aggregatedSets.filter(s => s.aggregatedMu > 0);
+        const defuzzRange = this.getRange(outputKey);
+        const STEPS = 200;
+        let centroidNum = 0, centroidDen = 0;
+        for (let i = 0; i <= STEPS; i++) {
+          const z = defuzzRange.min + (i / STEPS) * (defuzzRange.max - defuzzRange.min);
+          let muZ = 0;
+          activeSets.forEach(({ outSet, aggregatedMu }) => {
+            muZ = Math.max(muZ, Math.min(aggregatedMu, this.calculateMu(outSet, z)));
+          });
+          centroidNum += z * muZ;
+          centroidDen += muZ;
+        }
+        const centroid = centroidDen > 0 ? centroidNum / centroidDen : 0;
+
+        {
+          const mn  = v => `<mn>${v}</mn>`;
+          const mi  = v => `<mi>${v}</mi>`;
+          const mo  = v => `<mo>${v}</mo>`;
+          const NBSP = '\u00A0';
+          const frac = (n, d) => `<mfrac mathsize="1.5em"><mpadded height="1.2em" depth="0.4em"><mrow>${n}</mrow></mpadded><mpadded height="1.2em" depth="0.4em"><mrow>${d}</mrow></mpadded></mfrac>`;
+          // Each row is its own <math> block wrapped in explicit <mrow>
+          const mmath = html => `<div class="defuzz-row"><math display="block"><mrow>${html}</mrow></math></div>`;
+
+          // ── Box 1: formula explanation ──
+          const formulaBox = `<div class="defuzz-box">
+            ${mmath(`<msup><mi>z</mi><mo>*</mo></msup><mo>=</mo>${frac(
+              `<munderover><mo>&#x2211;</mo><mrow><mi>i</mi><mo>=</mo><mn>0</mn></mrow><mi>N</mi></munderover><msub><mi>z</mi><mi>i</mi></msub><mo>&#x22C5;</mo><msub><mi>&#x03BC;</mi><mi>combined</mi></msub><mo stretchy="false">(</mo><msub><mi>z</mi><mi>i</mi></msub><mo stretchy="false">)</mo>`,
+              `<munderover><mo>&#x2211;</mo><mrow><mi>i</mi><mo>=</mo><mn>0</mn></mrow><mi>N</mi></munderover><msub><mi>&#x03BC;</mi><mi>combined</mi></msub><mo stretchy="false">(</mo><msub><mi>z</mi><mi>i</mi></msub><mo stretchy="false">)</mo>`
+            )}`)}
+            <p class="defuzz-note" style="margin-bottom:10px;">
+              dimana &mu;<sub>combined</sub>(z) = MAX ( MIN ( &alpha;<sub>k</sub> , &mu;<sub>k</sub>(z) ) )
+            </p>
+            <p class="defuzz-note">N = ${STEPS} titik sampel, rentang z: [${defuzzRange.min}, ${defuzzRange.max}]</p>
+          </div>`;
+
+          // ── Box 2: per-set clipped formula (one box each) ──
+          const setBoxes = activeSets.map(({ outSet, aggregatedMu }) =>
+            `<div class="defuzz-box">
+              <p style="color:#e2e8f0; margin-bottom:12px;">
+                Himpunan <strong>${outSet.label}</strong> &rarr; &alpha; = ${aggregatedMu.toFixed(3)}
+              </p>
+              ${mmath(`<msub><mi>&#x03BC;</mi><mtext>${outSet.label}</mtext></msub><mo stretchy="false">(</mo><mi>z</mi><mo stretchy="false">)</mo><mo>=</mo><mtext>MIN</mtext><mo stretchy="false">(</mo>${mn(aggregatedMu.toFixed(3))}<mo>,</mo><msub><mi>&#x03BC;</mi><mtext>${outSet.label}</mtext></msub><mo stretchy="false">(</mo><mi>z</mi><mo stretchy="false">)</mo><mo stretchy="false">)</mo>`)}
+            </div>`
+          ).join('');
+
+          // ── Box 3: sample calculation (8 evenly spaced z values) ──
+          const SAMPLE_N = 8;
+          const numCols = 2 + activeSets.length; // z + per-set cols + μ_combined + z·μ = 2+sets
+          const samplePoints = [];
+          for (let i = 0; i <= SAMPLE_N; i++) {
+            const z = defuzzRange.min + (i / SAMPLE_N) * (defuzzRange.max - defuzzRange.min);
+            let muZ = 0;
+            activeSets.forEach(({ outSet, aggregatedMu }) => {
+              muZ = Math.max(muZ, Math.min(aggregatedMu, this.calculateMu(outSet, z)));
+            });
+            samplePoints.push({ z: +z.toFixed(2), muZ: +muZ.toFixed(4), contrib: +(z * muZ).toFixed(4) });
+          }
+          const setHeaders = activeSets.map(s => `<th>MIN(${s.aggregatedMu.toFixed(3)}, &#x03BC;<sub>${s.outSet.label}</sub>(z))</th>`).join('');
+          const sampleBodyRows = samplePoints.map(p => {
+            const perSet = activeSets.map(({ outSet, aggregatedMu }) => {
+              const v = Math.min(aggregatedMu, this.calculateMu(outSet, p.z));
+              return `<td>${v.toFixed(4)}</td>`;
+            }).join('');
+            const cls = p.muZ > 0 ? 'nonzero' : '';
+            return `<tr class="${cls}"><td>${p.z}</td>${perSet}<td>${p.muZ.toFixed(4)}</td><td>${p.contrib.toFixed(4)}</td></tr>`;
+          }).join('');
+          const ellipsisRow = `<tr class="ellipsis"><td colspan="${numCols + 2}">&#x22EF; (${STEPS - SAMPLE_N - 1} titik lainnya)</td></tr>`;
+          const sampleBox = `<div class="defuzz-box">
+            <p class="defuzz-note" style="margin-bottom:10px;">Contoh perhitungan &#x03BC;<sub>combined</sub>(z) pada beberapa titik sampel (dari ${STEPS + 1} total):</p>
+            <table class="defuzz-sample-table">
+              <thead><tr><th>z</th>${setHeaders}<th>&#x03BC;<sub>combined</sub>(z)</th><th>z &middot; &#x03BC;</th></tr></thead>
+              <tbody>${sampleBodyRows}${ellipsisRow}</tbody>
+              <tfoot><tr><td colspan="${numCols + 2}">
+                &#x2211; z &middot; &#x03BC;<sub>combined</sub>(z) = ${centroidNum.toFixed(4)}
+                &nbsp;&nbsp;|&nbsp;&nbsp;
+                &#x2211; &#x03BC;<sub>combined</sub>(z) = ${centroidDen.toFixed(4)}
+              </td></tr></tfoot>
+            </table>
+          </div>`;
+
+          // ── Box 4: result ──
+          const resultBox = `<div class="defuzz-result-box">
+            <p style="color:#94a3b8; margin-bottom:10px; font-size:0.82rem;">
+              Numerator = ${centroidNum.toFixed(4)} &nbsp;|&nbsp; Denominator = ${centroidDen.toFixed(4)}
+            </p>
+            ${mmath(`<msup><mi>z</mi><mo>*</mo></msup><mo>=</mo>${frac(mn(centroidNum.toFixed(4)), mn(centroidDen.toFixed(4)))}<mo>=</mo>${mn(centroid.toFixed(3))}<mtext>${NBSP}detik</mtext>`)}
+          </div>`;
+
+          this.simulationSteps.push({
+            title: "Defuzzifikasi (Centroid)",
+            description: `z* = ${centroid.toFixed(3)} detik`,
+            equation: `<div class="branch-list">${formulaBox}${setBoxes}${sampleBox}${resultBox}</div>`,
+            open: centroidDen > 0,
+            fired: centroidDen > 0,
+          });
+        }
 
         console.log('runSimulation', this.simulationSteps);
       },
@@ -1069,7 +1237,7 @@
       },
 
       saveRules() {
-        localStorage.setItem('watering-rules', JSON.stringify(this.rules));
+        localStorage.setItem(LS_PREFIX + 'watering-rules', JSON.stringify(this.rules));
       },
 
       addRule() {
