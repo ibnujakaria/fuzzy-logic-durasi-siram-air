@@ -90,7 +90,7 @@
     gap: 16px;
     margin-bottom: 20px;
   }
-  @media (min-width: 768px) {
+  @media (min-width: 1200px) {
     .sets-grid { grid-template-columns: repeat(5, 1fr); }
   }
 
@@ -335,6 +335,100 @@
     text-align: left;
     margin: 0;
   }
+
+  /* ============================================================
+     RESPONSIVE — Tablet 641–900px
+     ============================================================ */
+  @media (max-width: 900px) {
+    .cfg-sidebar { width: 168px; }
+    .cfg-main { padding: 20px 20px; }
+    .sim-container { padding: 0; }
+  }
+
+  /* ============================================================
+     RESPONSIVE — Mobile ≤640px: sidebar becomes sticky top nav
+     ============================================================ */
+  @media (max-width: 640px) {
+    .cfg-wrap { flex-direction: column; }
+
+    /* Sidebar becomes a horizontal scrollable tab bar */
+    .cfg-sidebar {
+      width: 100%;
+      height: auto;
+      position: sticky;
+      top: 0;
+      flex-direction: row;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 8px 10px;
+      gap: 4px;
+      border-right: none;
+      border-bottom: 1px solid #1e293b;
+      z-index: 100;
+      scrollbar-width: none;
+    }
+    .cfg-sidebar::-webkit-scrollbar { display: none; }
+
+    /* Hide section labels and spacer in horizontal mode */
+    .cfg-sidebar-logo,
+    .cfg-sidebar-title,
+    .cfg-sidebar-spacer { display: none; }
+
+    /* Nav items: pill shape, inline */
+    .cfg-nav-item {
+      flex-direction: row;
+      flex-shrink: 0;
+      white-space: nowrap;
+      padding: 6px 12px;
+      border-radius: 20px;
+      gap: 4px;
+      font-size: 0.82rem;
+    }
+    .cfg-nav-unit { display: none; }
+
+    /* Reset button at end of scroll row */
+    .btn-reset {
+      flex-shrink: 0;
+      width: auto;
+      margin-top: 0;
+      margin-left: 6px;
+      white-space: nowrap;
+      border-radius: 20px;
+      padding: 6px 12px;
+      font-size: 0.75rem;
+    }
+
+    /* Main area */
+    .cfg-main { padding: 14px 14px 48px; }
+    .sim-container { padding: 0; }
+
+    /* Sets grid: 2 columns on mobile */
+    .sets-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+
+    /* Rules table: tighter, still scrollable */
+    .rules-table { font-size: 0.78rem; }
+    .rules-table th { font-size: 0.6rem; padding: 6px 4px; }
+    .rules-table td { padding: 4px 3px; }
+    .rules-table select { min-width: 68px; font-size: 0.75rem; padding: 4px 4px; }
+    .btn-del-rule { width: 24px; height: 24px; font-size: 0.9rem; }
+
+    /* Sim buttons: stack full-width */
+    .sim-btn-row { flex-direction: column !important; align-items: stretch !important; }
+    .sim-btn-row .btn-add-rule { width: 100%; text-align: center; margin-bottom: 0; }
+
+    /* Engine comparison numbers: stack vertically */
+    .engine-compare-row { flex-direction: column !important; gap: 12px !important; }
+
+    /* Allow wide content (MathML, tables) to scroll inside boxes */
+    .defuzz-box,
+    .rule-cond-box,
+    .rule-alpha-box { overflow-x: auto; padding: 10px 12px; }
+    .defuzz-result-box { padding: 12px 14px; }
+    .branch-box { padding: 8px 10px; }
+
+    /* Step cards tighter */
+    .sim-step-card { padding: 12px; }
+  }
 </style>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
@@ -538,7 +632,7 @@
         </template>
       </div>
       
-      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:0">
+      <div class="sim-btn-row" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:0">
         <button class="btn-add-rule" style="margin-bottom:0" @click="runSimulation()">Jalankan Simulasi</button>
         <button class="btn-add-rule" style="margin-bottom:0;background:#0e7490;border-color:#0e7490"
                 @click="compareWithEngine()" :disabled="engineLoading">
@@ -551,7 +645,7 @@
         <div x-show="engineError" style="color:#f87171;padding:12px 16px;background:#1f0a0a;border-radius:6px;border:1px solid #7f1d1d" x-text="'Error: ' + engineError"></div>
         <div x-show="engineResult" class="defuzz-result-box" style="margin-top:0">
           <p style="color:#94a3b8;font-size:0.78rem;text-transform:uppercase;letter-spacing:.05em;margin:0 0 12px">Hasil Engine (TypeScript / C++)</p>
-          <div style="display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start">
+          <div class="engine-compare-row" style="display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start">
             <div>
               <p style="color:#64748b;font-size:0.75rem;margin:0 0 2px">Durasi Siram</p>
               <p style="font-size:1.6rem;font-weight:700;color:#22d3ee;margin:0" x-text="(engineResult?.durasiSiram ?? '—') + ' detik'"></p>
@@ -755,6 +849,9 @@
         this.$nextTick(function() {
           if (this.isCppView()) { this.updateCppCode(); }
           else { this.renderChart(); }
+          // Scroll active nav item into view on mobile top-nav
+          var activeBtn = document.querySelector('.cfg-nav-item.active');
+          if (activeBtn) activeBtn.scrollIntoView({ inline: 'center', behavior: 'instant', block: 'nearest' });
         }.bind(this));
       },
 
@@ -768,6 +865,9 @@
             if (self.isCppView()) { self.updateCppCode(); }
             else { self.renderChart(); }
           }, 0);
+          // On mobile, scroll the active nav pill into view
+          var activeBtn = document.querySelector('.cfg-nav-item.active');
+          if (activeBtn) activeBtn.scrollIntoView({ inline: 'center', behavior: 'smooth', block: 'nearest' });
         });
       },
 
