@@ -538,7 +538,45 @@
         </template>
       </div>
       
-      <button class="btn-add-rule" @click="runSimulation()">Jalankan Simulasi</button>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:0">
+        <button class="btn-add-rule" style="margin-bottom:0" @click="runSimulation()">Jalankan Simulasi</button>
+        <button class="btn-add-rule" style="margin-bottom:0;background:#0e7490;border-color:#0e7490"
+                @click="compareWithEngine()" :disabled="engineLoading">
+          <span x-text="engineLoading ? 'Memuat...' : 'Bandingkan dengan Engine'"></span>
+        </button>
+      </div>
+
+      <!-- Engine comparison result -->
+      <div x-show="engineResult || engineError || engineLoading" style="margin-top:16px">
+        <div x-show="engineError" style="color:#f87171;padding:12px 16px;background:#1f0a0a;border-radius:6px;border:1px solid #7f1d1d" x-text="'Error: ' + engineError"></div>
+        <div x-show="engineResult" class="defuzz-result-box" style="margin-top:0">
+          <p style="color:#94a3b8;font-size:0.78rem;text-transform:uppercase;letter-spacing:.05em;margin:0 0 12px">Hasil Engine (TypeScript / C++)</p>
+          <div style="display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start">
+            <div>
+              <p style="color:#64748b;font-size:0.75rem;margin:0 0 2px">Durasi Siram</p>
+              <p style="font-size:1.6rem;font-weight:700;color:#22d3ee;margin:0" x-text="(engineResult?.durasiSiram ?? '—') + ' detik'"></p>
+            </div>
+            <div x-show="simulationSteps.length">
+              <p style="color:#64748b;font-size:0.75rem;margin:0 0 2px">Simulasi Manual</p>
+              <p style="font-size:1.6rem;font-weight:700;margin:0"
+                 :style="engineResult && simulationSteps.length && Math.round(parseFloat(simulationSteps[simulationSteps.length-1]?.description?.match(/[\d.]+/)?.[0])) === engineResult.durasiSiram ? 'color:#4ade80' : 'color:#fb923c'"
+                 x-text="simulationSteps.length ? (Math.round(parseFloat(simulationSteps[simulationSteps.length-1]?.description?.match(/[\d.]+/)?.[0])) + ' detik') : '—'"></p>
+            </div>
+            <div x-show="!simulationSteps.length" style="align-self:center">
+              <p style="color:#475569;font-size:0.82rem;margin:0">Jalankan simulasi manual untuk perbandingan</p>
+            </div>
+          </div>
+          <div x-show="engineResult?.activeRules?.length" style="margin-top:16px">
+            <p style="color:#64748b;font-size:0.75rem;margin:0 0 8px">Aturan aktif di engine</p>
+            <template x-for="(r, i) in (engineResult?.activeRules || [])" :key="i">
+              <p style="font-size:0.8rem;color:#94a3b8;margin:2px 0;font-family:monospace">
+                <span style="color:#22d3ee" x-text="'α=' + r.strength.toFixed(3)"></span>
+                <span x-text="' → ' + r.output"></span>
+              </p>
+            </template>
+          </div>
+        </div>
+      </div>
 
       <div class="sim-step-list" x-show="simulationSteps.length">
         <template x-for="(step, index) in simulationSteps" :key="index">
@@ -650,6 +688,9 @@
         curahHujan: 0.4,       // overlap: tidak_ada(0.25) + ringan(0.08)
       },
       simulationSteps: [],
+      engineResult: null,
+      engineLoading: false,
+      engineError: '',
 
       allKeys() {
         return this.inputKeys.concat(this.outputKeys);
@@ -1128,6 +1169,55 @@
         }
 
         console.log('runSimulation', this.simulationSteps);
+      },
+
+      async compareWithEngine() {
+        this.engineResult = null;
+        this.engineError = '';
+        this.engineLoading = true;
+
+        // Build config payload: strip display-only fields the engine doesn't need
+        const configPayload = {};
+        for (const key of this.inputKeys.concat(this.outputKeys)) {
+          configPayload[key] = {
+            sets: this.config[key].sets.map(s => ({
+              key: s.key,
+              fn: s.fn === 'trapesium' ? 'trapesium' : 'segitiga',
+              a: s.a, b: s.b, c: s.c, d: s.d,
+            })),
+          };
+        }
+
+        // Rules: strip 'id' field, skip wildcard conditions
+        const rulesPayload = this.rules.map(r => {
+          const conditions = {};
+          for (const [k, v] of Object.entries(r.conditions)) {
+            if (v && v !== '*') conditions[k] = v;
+          }
+          return { conditions, output: r.output };
+        }).filter(r => Object.keys(r.conditions).length > 0 && r.output);
+
+        try {
+          const resp = await fetch('/api/fuzzify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              kelembapanTanah: this.simInputs.kelembapanTanah,
+              suhuUdara: this.simInputs.suhuUdara,
+              kelembapanUdara: this.simInputs.kelembapanUdara,
+              curahHujan: this.simInputs.curahHujan,
+              config: configPayload,
+              rules: rulesPayload,
+            }),
+          });
+          const data = await resp.json();
+          if (!resp.ok) throw new Error(data.error || 'Server error');
+          this.engineResult = data;
+        } catch (e) {
+          this.engineError = e.message || 'Gagal terhubung ke server.';
+        } finally {
+          this.engineLoading = false;
+        }
       },
 
       calculateMu(set, x) {

@@ -6,8 +6,47 @@ import { fetchWeatherData, getLocationInfo, getRainProbabilityNext3Hours } from 
 import { evaluate } from "./fuzzy/engine";
 import { wateringConfig } from "./fuzzy/watering-config";
 import { generateCpp } from "./fuzzy/cpp-generator";
+import { triangular, trapezoidal } from "./fuzzy/membership";
+import type { FuzzyConfig, MembershipFn } from "./fuzzy/types";
 
 const LOCATION_ID = "35.78.13.1003";
+
+// --- Config converter: frontend format → FuzzyConfig ---
+// Frontend sends config as { [varKey]: { sets: [{ key, fn, a, b, c, d }] } }
+// and rules as [{ conditions: { [varKey]: setKey }, output: setKey }]
+function buildFuzzyConfig(
+  frontendConfig: Record<string, { sets: Array<{ key: string; fn: string; a: number; b: number; c: number; d: number }> }>,
+  frontendRules: Array<{ conditions: Record<string, string>; output: string }>,
+  inputKeys: string[],
+  outputKey: string,
+  outputRange: [number, number]
+): FuzzyConfig {
+  const buildSets = (sets: Array<{ key: string; fn: string; a: number; b: number; c: number; d: number }>) => {
+    const result: Record<string, MembershipFn> = {};
+    for (const s of sets) {
+      result[s.key] = s.fn === "segitiga"
+        ? triangular(s.a, s.b, s.c)
+        : trapezoidal(s.a, s.b, s.c, s.d);
+    }
+    return result;
+  };
+
+  return {
+    inputs: inputKeys.map((key) => ({
+      name: key,
+      sets: buildSets(frontendConfig[key].sets),
+    })),
+    output: {
+      name: outputKey,
+      sets: buildSets(frontendConfig[outputKey].sets),
+    },
+    rules: frontendRules.map((r) => ({
+      conditions: r.conditions,
+      output: r.output,
+    })),
+    outputRange,
+  };
+}
 
 const VIEWS_DIR = path.join(__dirname, "..", "src", "views");
 
@@ -91,7 +130,7 @@ app.get("/api/weather-times", async (_req, res) => {
 
 app.post("/api/fuzzify", async (req, res) => {
   try {
-    const { kelembapanTanah, suhuUdara, kelembapanUdara, curahHujan: manualRain } = req.body;
+    const { kelembapanTanah, suhuUdara, kelembapanUdara, curahHujan: manualRain, config: customConfig, rules: customRules } = req.body;
 
     if (kelembapanTanah == null || suhuUdara == null || kelembapanUdara == null) {
       res.status(400).json({ error: "Semua field sensor harus diisi." });
@@ -107,7 +146,17 @@ app.post("/api/fuzzify", async (req, res) => {
       curahHujan = rainEntries.reduce((sum, e) => sum + e.tp, 0);
     }
 
-    const result = evaluate(wateringConfig, {
+    const fuzzyConfig = customConfig && customRules
+      ? buildFuzzyConfig(
+          customConfig,
+          customRules,
+          ["kelembapanTanah", "suhuUdara", "kelembapanUdara", "curahHujan"],
+          "durasiSiram",
+          [0, 300]
+        )
+      : wateringConfig;
+
+    const result = evaluate(fuzzyConfig, {
       kelembapanTanah: Number(kelembapanTanah),
       suhuUdara: Number(suhuUdara),
       kelembapanUdara: Number(kelembapanUdara),
@@ -131,6 +180,7 @@ app.post("/api/fuzzify", async (req, res) => {
           strength: Math.round(r.strength * 1000) / 1000,
         })),
       durasiSiram: result.crispOutput,
+      usingCustomConfig: !!(customConfig && customRules),
     });
   } catch (err) {
     logError("POST /api/fuzzify", err);
